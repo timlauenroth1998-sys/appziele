@@ -1,8 +1,9 @@
 # PROJ-2: KI-Roadmap-Generierung (Hybrid)
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
+**Architected:** 2026-04-03
 
 ## Dependencies
 - Requires: PROJ-1 (Ziel-Eingabe) – Ziele müssen vorhanden sein, bevor die Roadmap generiert werden kann
@@ -43,7 +44,94 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Seitenstruktur & Komponentenbaum
+
+```
+/goals (bestehend – Button wird aktiviert)
++-- "Roadmap generieren →"-Button  [war deaktiviert, jetzt aktiv]
+
+/roadmap (neue Seite)
++-- RoadmapNav
+|   +-- ← Zurück zu Zielen
+|   +-- "Roadmap neu generieren"-Button (mit Bestätigung)
+|   +-- OutdatedBanner (wenn Ziele seit letzter Generierung geändert wurden)
++-- [Zustand A: Wird generiert]
+|   +-- GeneratingProgress (Spinner + progressive Text-Chunks)
++-- [Zustand B: Fehler]
+|   +-- ErrorAlert + Retry-Button
++-- [Zustand C: Fertig]
+    +-- LifeAreaTabs (Alle / Karriere / Gesundheit / ...)
+    +-- TimelineAccordion
+    |   +-- AccordionItem: 5-Jahres-Vision
+    |   +-- AccordionItem: 3-Jahresziele
+    |   +-- AccordionItem: Jahresziele
+    |   +-- AccordionItem: Q1 / Q2 / Q3 / Q4
+    |   +-- AccordionItem: Jan–Dez (12 Monate)
+    |   +-- AccordionItem: Woche 1-4
+    |       +-- RoadmapItem
+    |           +-- Text (KI-generiert oder bearbeitet)
+    |           +-- "Manuell bearbeitet"-Badge
+    |           +-- Inline-Edit-Button → EditableTextField
+    |   +-- SectionRegenerateButton (↺ pro Zeitebene)
+
+API:
+POST /api/roadmap/generate
++-- Empfängt: GoalProfile (JSON-Body)
++-- Antwortet: SSE-Stream mit strukturiertem JSON
++-- Nutzt: Anthropic SDK (claude-sonnet-4-6, structured output)
+```
+
+### Datenmodell (localStorage, Key: `ziele_roadmap`)
+
+```
+Roadmap
+├── generatedAt      ISO-Zeitstempel
+├── profileHash      Fingerabdruck des GoalProfile (für "Ziele geändert"-Banner)
+└── lifeAreaRoadmaps[]
+    ├── lifeAreaId    "career"
+    ├── lifeAreaName  "Karriere & Beruf"
+    └── timeline
+        ├── vision5y[]   RoadmapItem[]
+        ├── goals3y[]    RoadmapItem[]
+        ├── goals1y[]    RoadmapItem[]
+        ├── quarters     { q1[], q2[], q3[], q4[] }
+        ├── months       { jan[], feb[], ..., dez[] }
+        └── weeks        { w1[], w2[], w3[], w4[] }
+
+RoadmapItem
+├── id         UUID
+├── text       KI-generierter Aktionsschritt
+├── isEdited   Boolean
+└── editedAt   ISO-Zeitstempel (optional)
+```
+
+### Tech-Entscheidungen
+
+| Entscheidung | Warum |
+|---|---|
+| **Streaming (SSE)** | Roadmap erscheint progressiv → gefühlte Performance besser als Warten auf komplettes JSON |
+| **Next.js API Route** | Claude API-Key bleibt serverseitig – nie im Browser sichtbar |
+| **Structured JSON (Tool Use)** | Claude gibt exaktes Schema zurück → kein fehleranfälliges Text-Parsen |
+| **shadcn Accordion** | Bereits installiert; ideal für 6 aufklappbare Zeitebenen |
+| **`useRoadmapStorage` Hook** | Analoges Muster zu `useGoalStorage` → saubere DB-Migration in PROJ-5 |
+| **profileHash** | Einfacher Fingerabdruck → "Ziele geändert"-Banner ohne DB-Vergleich |
+| **Kein Rate Limiting** | MVP-Entscheidung; kann nachgezogen werden |
+
+### Datenfluss
+
+```
+Klick "Roadmap generieren"
+→ GoalProfile aus localStorage
+→ POST /api/roadmap/generate
+→ Claude claude-sonnet-4-6 streamt JSON (SSE)
+→ Frontend rendert progressiv
+→ Fertig: in localStorage gespeichert
+→ Nutzer sieht vollständige, editierbare Roadmap
+```
+
+### Neue Pakete
+- `@anthropic-ai/sdk` – Anthropic SDK für Claude API mit Streaming-Support
 
 ## QA Test Results
 _To be added by /qa_

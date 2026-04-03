@@ -2,7 +2,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { GoalProfile, Roadmap, LifeAreaRoadmap, RoadmapTimeline, RoadmapItem } from '@/lib/types'
 
-const client = new Anthropic()
+// Extend Vercel function timeout (requires Pro plan; no-op on Hobby but harmless)
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 function makeId() {
   return Math.random().toString(36).slice(2, 10)
@@ -39,61 +41,37 @@ function buildPrompt(profile: GoalProfile): string {
     ? `\n\n5-Jahres-Vision des Nutzers:\n${profile.vision5y}`
     : ''
 
-  return `Du bist ein erfahrener Life-Coach und Stratege. Erstelle auf Basis der folgenden Ziele einen vollständigen, konkreten Fahrplan.${vision}
+  return `Du bist ein erfahrener Life-Coach. Erstelle einen konkreten Fahrplan als JSON.${vision}
 
-Ziele des Nutzers:
+Ziele:
 ${areasText}
 
-Erstelle für JEDEN Lebensbereich einen strukturierten Plan mit konkreten, umsetzbaren Aktionsschritten (max. 2-3 pro Zeitebene). Sei präzise und motivierend. Leite fehlende Zeitebenen intelligent aus den vorhandenen Zielen ab.
+Regeln: Max. 1-2 Aktionsschritte pro Zeitebene. Kurze, präzise Sätze (max. 10 Wörter). Leite fehlende Ebenen aus den Zielen ab.
 
-WICHTIG: Antworte NUR mit validem JSON im folgenden Schema. Keine Erklärungen, kein Markdown, nur JSON.
+Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
+{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}]}
 
-{
-  "lifeAreaRoadmaps": [
-    {
-      "lifeAreaId": "<id aus den Eingabedaten>",
-      "lifeAreaName": "<name>",
-      "timeline": {
-        "vision5y": [{"text": "Aktionsschritt"}],
-        "goals3y": [{"text": "..."}, {"text": "..."}],
-        "goals1y": [{"text": "..."}, {"text": "..."}],
-        "quarters": {
-          "q1": [{"text": "..."}],
-          "q2": [{"text": "..."}],
-          "q3": [{"text": "..."}],
-          "q4": [{"text": "..."}]
-        },
-        "months": {
-          "jan": [{"text": "..."}], "feb": [{"text": "..."}], "mar": [{"text": "..."}],
-          "apr": [{"text": "..."}], "may": [{"text": "..."}], "jun": [{"text": "..."}],
-          "jul": [{"text": "..."}], "aug": [{"text": "..."}], "sep": [{"text": "..."}],
-          "oct": [{"text": "..."}], "nov": [{"text": "..."}], "dec": [{"text": "..."}]
-        },
-        "weeks": {
-          "w1": [{"text": "..."}],
-          "w2": [{"text": "..."}],
-          "w3": [{"text": "..."}],
-          "w4": [{"text": "..."}]
-        }
-      }
-    }
-  ]
-}
-
-Erstelle den Plan für alle ${profile.lifeAreas.length} Lebensbereiche. Antworte nur mit JSON.`
+Erstelle den Plan für alle ${profile.lifeAreas.length} Lebensbereiche.`
 }
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('[roadmap/generate] ANTHROPIC_API_KEY is not set')
+      return NextResponse.json({ error: 'KI-Service nicht konfiguriert. Bitte ANTHROPIC_API_KEY in Vercel setzen.' }, { status: 500 })
+    }
+
     const profile: GoalProfile = await req.json()
 
     if (!profile?.lifeAreas?.length) {
       return NextResponse.json({ error: 'Keine Ziele vorhanden.' }, { status: 400 })
     }
 
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content: buildPrompt(profile) }],
     })
 

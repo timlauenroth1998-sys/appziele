@@ -41,15 +41,21 @@ function buildPrompt(profile: GoalProfile): string {
     ? `\n\n5-Jahres-Vision des Nutzers:\n${profile.vision5y}`
     : ''
 
-  return `Du bist ein erfahrener Life-Coach. Erstelle einen konkreten Fahrplan als JSON.${vision}
+  return `Du bist ein erfahrener Life-Coach und Erfolgs-Stratege. Erstelle einen motivierenden, umsetzbaren Fahrplan.${vision}
 
-Ziele:
+Eingaben des Klienten:
 ${areasText}
 
-Regeln: Max. 1-2 Aktionsschritte pro Zeitebene. Kurze, präzise Sätze (max. 10 Wörter). Leite fehlende Ebenen aus den Zielen ab.
+DEINE AUFGABE:
+1. Wandle vage Wünsche automatisch in SMART-Ziele um (Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert).
+2. Erstelle 2-3 Einträge pro Zeitebene – jeder Eintrag = ein SMART-Ziel PLUS eine konkrete Umsetzungsidee.
+3. Format pro Eintrag: "SMART-Ziel → Wie: konkrete Umsetzungsidee"
+   Beispiel: "Bis 31. März 5 kg abnehmen → Wie: 3x/Woche 30 Min Laufen mit der Nike Run Club App"
+4. Sei motivierend, präzise und praxisnah. Umsetzungsideen sollen sofort anwendbar sein.
+5. Leite alle fehlenden Zeitebenen intelligent aus den vorhandenen Zielen ab.
 
-Antworte NUR mit diesem JSON (kein Markdown, keine Erklärungen):
-{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}]}
+Antworte NUR mit validem JSON (kein Markdown, keine Erklärungen):
+{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."}]},"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."}]}}}]}
 
 Erstelle den Plan für alle ${profile.lifeAreas.length} Lebensbereiche.`
 }
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 6000,
       messages: [{ role: 'user', content: buildPrompt(profile) }],
     })
 

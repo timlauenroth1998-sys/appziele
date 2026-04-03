@@ -110,7 +110,7 @@ export default function GoalsPage() {
           >
             Neu starten
           </Button>
-          <Button size="sm" disabled className="opacity-50">
+          <Button size="sm" onClick={() => router.push('/roadmap')}>
             Roadmap generieren →
           </Button>
         </div>
@@ -247,12 +247,6 @@ export default function GoalsPage() {
           })}
         </Tabs>
 
-        {/* Info footer */}
-        <div className="border border-gray-100 rounded-xl p-4 bg-gray-50 text-sm text-gray-500">
-          <p>
-            <strong className="text-gray-700">Nächster Schritt:</strong> Sobald du deine Ziele eingegeben hast, kannst du die KI-Roadmap-Generierung starten (PROJ-2).
-          </p>
-        </div>
       </main>
     </div>
   )

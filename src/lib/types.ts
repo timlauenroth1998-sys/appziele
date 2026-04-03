@@ -39,3 +39,40 @@ export const LIFE_AREA_COLOR_MAP: Record<LifeAreaColor, { bg: string; text: stri
 }
 
 export const CUSTOM_AREA_COLORS: LifeAreaColor[] = ['purple', 'teal', 'orange', 'indigo']
+
+// ─── Roadmap types ────────────────────────────────────────────────────────────
+
+export interface RoadmapItem {
+  id: string
+  text: string
+  isEdited: boolean
+  editedAt?: string
+}
+
+export interface RoadmapTimeline {
+  vision5y: RoadmapItem[]
+  goals3y: RoadmapItem[]
+  goals1y: RoadmapItem[]
+  quarters: { q1: RoadmapItem[]; q2: RoadmapItem[]; q3: RoadmapItem[]; q4: RoadmapItem[] }
+  months: {
+    jan: RoadmapItem[]; feb: RoadmapItem[]; mar: RoadmapItem[]
+    apr: RoadmapItem[]; may: RoadmapItem[]; jun: RoadmapItem[]
+    jul: RoadmapItem[]; aug: RoadmapItem[]; sep: RoadmapItem[]
+    oct: RoadmapItem[]; nov: RoadmapItem[]; dec: RoadmapItem[]
+  }
+  weeks: { w1: RoadmapItem[]; w2: RoadmapItem[]; w3: RoadmapItem[]; w4: RoadmapItem[] }
+}
+
+export interface LifeAreaRoadmap {
+  lifeAreaId: string
+  lifeAreaName: string
+  timeline: RoadmapTimeline
+}
+
+export interface Roadmap {
+  generatedAt: string
+  profileHash: string
+  lifeAreaRoadmaps: LifeAreaRoadmap[]
+}
+
+export type GenerationStatus = 'idle' | 'generating' | 'done' | 'error'

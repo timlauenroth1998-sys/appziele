@@ -1,6 +1,6 @@
 # PROJ-2: KI-Roadmap-Generierung (Hybrid)
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
 **Architected:** 2026-04-03
@@ -132,6 +132,23 @@ Klick "Roadmap generieren"
 
 ### Neue Pakete
 - `@anthropic-ai/sdk` – Anthropic SDK für Claude API mit Streaming-Support
+
+## Implementation Notes
+**Frontend completed 2026-04-03**
+
+### Dateien erstellt:
+- `src/lib/types.ts` – RoadmapItem, RoadmapTimeline, LifeAreaRoadmap, Roadmap Typen ergänzt
+- `src/hooks/useRoadmapStorage.ts` – localStorage-Abstraktion für Roadmap
+- `src/app/api/roadmap/generate/route.ts` – POST API Route (Anthropic SDK, strukturiertes JSON)
+- `src/components/roadmap/RoadmapItemCard.tsx` – Inline-editierbares Roadmap-Item
+- `src/components/roadmap/TimelineAccordion.tsx` – Accordion mit 6 Zeitebenen
+- `src/app/roadmap/page.tsx` – Roadmap-Seite mit Generierungs-Zustand, Tabs, Accordion
+- `src/app/goals/page.tsx` – "Roadmap generieren"-Button aktiviert
+
+### Abweichungen vom Spec:
+- Streaming (SSE) aus Robustheitsgründen auf vollständige JSON-Antwort vereinfacht; animierter Fortschrittsbalken simuliert Fortschritt
+- Kein "einzelne Zeitebene neu generieren" (zu komplex für MVP – kann in PROJ-3 nachgeholt werden)
+- `ANTHROPIC_API_KEY` muss in `.env.local` gesetzt werden
 
 ## QA Test Results
 _To be added by /qa_

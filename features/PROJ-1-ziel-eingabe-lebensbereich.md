@@ -1,8 +1,9 @@
 # PROJ-1: Ziel-Eingabe & Lebensbereich-Profil
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
+**Architected:** 2026-04-03
 
 ## Dependencies
 - None
@@ -41,7 +42,70 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+
+### Seitenstruktur & Routing
+
+```
+/ (Landing Page)
++-- WelcomeHero (CTA: "Jetzt starten")
++-- → Weiterleitung zu /onboarding
+
+/onboarding (4-Schritt-Wizard)
++-- OnboardingWizard
+|   +-- ProgressIndicator (Schritt 1 von 4)
+|   +-- [Schritt 1] VisionInput (5-Jahres-Vision)
+|   +-- [Schritt 2] LifeAreaSelector
+|   |   +-- Vordefinierte Bereiche (toggle-fähige Chips)
+|   |   +-- "Eigenen Bereich hinzufügen" (Input + Button)
+|   +-- [Schritt 3] GoalInputForm
+|   |   +-- LifeAreaTabs (ein Tab pro Lebensbereich)
+|   |   |   +-- YearGoalField (Pflichtfeld)
+|   |   |   +-- QuarterGoalField / MonthGoalField / WeekGoalField (optional)
+|   +-- [Schritt 4] GoalSummary
+|   |   +-- LifeAreaCard (Übersicht aller Ziele)
+|   |   +-- "Roadmap generieren"-Button
+|   +-- WizardNavigation (Zurück / Weiter)
+
+/goals (Ziele nachträglich bearbeiten)
++-- GoalEditView
+|   +-- LifeAreaTabs + GoalEditForm
+|   +-- "Lebensbereich hinzufügen / entfernen"
+```
+
+### Datenmodell (localStorage → später Supabase)
+
+```
+GoalProfile
+├── vision5y          Text (5-Jahres-Vision, optional)
+├── createdAt / updatedAt
+└── lifeAreas[]
+    ├── id            z.B. "career", "health" oder UUID für Custom
+    ├── name          "Karriere & Beruf"
+    ├── isCustom      Boolean
+    ├── color         Farbe für visuelle Unterscheidung
+    ├── yearGoal      Text (Pflichtfeld)
+    ├── quarterGoal   Text (optional)
+    ├── monthGoal     Text (optional)
+    └── weekGoal      Text (optional)
+
+Supabase-Tabelle (für PROJ-5): goals
+├── id, user_id, life_area, vision_5y
+├── year_goal, quarter_goal, month_goal, week_goal
+└── created_at, updated_at
+```
+
+### Tech-Entscheidungen
+
+| Entscheidung | Warum |
+|---|---|
+| 4-Schritt-Wizard | < 3 Min Ausfüllzeit; führt Nutzer schrittweise ohne Überwältigung |
+| Tabs pro Lebensbereich | Klar bei 4-8 Bereichen; shadcn Tabs bereits vorhanden |
+| localStorage als Start | Kein Login-Zwang; sofortige Nutzung; saubere Migration zu DB via Custom Hook |
+| `useGoalStorage` Hook | Abstrahiert Speicherort – ermöglicht nahtlosen Wechsel zu Supabase in PROJ-5 |
+| Zod + react-hook-form | Bereits im Stack; Schritt-für-Schritt-Validierung ohne Extra-Aufwand |
+
+### Neue Pakete
+Keine – alle shadcn/ui-Komponenten (Tabs, Input, Textarea, Button, Badge, Card, Form) bereits installiert.
 
 ## QA Test Results
 _To be added by /qa_

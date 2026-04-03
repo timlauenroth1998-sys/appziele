@@ -14,7 +14,7 @@
 
 | ID | Feature | Status | Spec | Created |
 |----|---------|--------|------|---------|
-| PROJ-1 | Ziel-Eingabe & Lebensbereich-Profil | In Progress | [PROJ-1](PROJ-1-ziel-eingabe-lebensbereich.md) | 2026-04-03 |
+| PROJ-1 | Ziel-Eingabe & Lebensbereich-Profil | Approved | [PROJ-1](PROJ-1-ziel-eingabe-lebensbereich.md) | 2026-04-03 |
 | PROJ-2 | KI-Roadmap-Generierung (Hybrid) | Planned | [PROJ-2](PROJ-2-ki-roadmap-generierung.md) | 2026-04-03 |
 | PROJ-3 | Roadmap-Dashboard & Fortschrittsanzeige | Planned | [PROJ-3](PROJ-3-roadmap-dashboard.md) | 2026-04-03 |
 | PROJ-4 | Kalender-Export (iCal/.ics) | Planned | [PROJ-4](PROJ-4-kalender-export.md) | 2026-04-03 |

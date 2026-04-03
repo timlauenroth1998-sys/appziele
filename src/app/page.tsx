@@ -1,101 +1,108 @@
-import Image from 'next/image'
+'use client'
 
-export default function Home() {
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { useGoalStorage } from '@/hooks/useGoalStorage'
+
+const FEATURES = [
+  {
+    icon: '🎯',
+    title: 'Ziele eingeben',
+    description: 'Definiere deine Visionen und Ziele pro Lebensbereich',
+  },
+  {
+    icon: '🗺️',
+    title: 'Roadmap erhalten',
+    description: 'KI erstellt automatisch deinen 5-Jahres- bis Wochenplan',
+  },
+  {
+    icon: '📅',
+    title: 'In den Kalender',
+    description: 'Exportiere alles in Apple, Google oder Outlook Kalender',
+  },
+]
+
+const LIFE_AREAS = ['Karriere & Beruf', 'Gesundheit & Fitness', 'Finanzen', 'Beziehungen & Familie']
+
+export default function HomePage() {
+  const router = useRouter()
+  const { profile, isLoaded } = useGoalStorage()
+
+  useEffect(() => {
+    if (isLoaded && profile && profile.lifeAreas.length > 0) {
+      router.replace('/goals')
+    }
+  }, [isLoaded, profile, router])
+
+  if (!isLoaded) return null
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{' '}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-white">
+      {/* Nav */}
+      <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
+        <span className="font-semibold text-gray-900 text-lg">Ziele App</span>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/onboarding')}>
+          Anmelden
+        </Button>
+      </nav>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
+        <Badge variant="secondary" className="mb-6 text-sm font-normal">
+          Vom Ziel zur Umsetzung – in Minuten
+        </Badge>
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-6">
+          Deine Ziele.
+          <br />
+          <span className="text-gray-500">Dein konkreter Fahrplan.</span>
+        </h1>
+        <p className="text-lg text-gray-500 max-w-xl mx-auto mb-10">
+          Gib deine Ziele ein und erhalte sofort einen strukturierten Plan –
+          aufgeteilt in 5-Jahres-Vision, Jahres-, Quartals-, Monats- und Wochenziele.
+          Direkt in deinen Kalender exportierbar.
+        </p>
+        <Button size="lg" className="px-8 py-6 text-base" onClick={() => router.push('/onboarding')}>
+          Jetzt kostenlos starten →
+        </Button>
+        <p className="text-sm text-gray-400 mt-4">Kein Account erforderlich</p>
+      </section>
+
+      {/* Life area chips */}
+      <section className="max-w-5xl mx-auto px-6 pb-16 flex flex-wrap gap-2 justify-center">
+        {LIFE_AREAS.map((area) => (
+          <Badge key={area} variant="outline" className="text-sm font-normal px-3 py-1">
+            {area}
+          </Badge>
+        ))}
+        <Badge variant="outline" className="text-sm font-normal px-3 py-1 text-gray-400">
+          + Eigene Bereiche
+        </Badge>
+      </section>
+
+      {/* Feature cards */}
+      <section className="max-w-5xl mx-auto px-6 pb-24">
+        <div className="grid sm:grid-cols-3 gap-6">
+          {FEATURES.map((f, i) => (
+            <div key={i} className="border border-gray-100 rounded-xl p-6 bg-gray-50">
+              <div className="text-3xl mb-3">{f.icon}</div>
+              <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
+              <p className="text-sm text-gray-500">{f.description}</p>
+            </div>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* CTA bottom */}
+      <section className="border-t border-gray-100 py-16 text-center px-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          Bereit, deinen Plan zu erstellen?
+        </h2>
+        <Button size="lg" onClick={() => router.push('/onboarding')} className="px-8">
+          Fahrplan erstellen
+        </Button>
+      </section>
     </div>
   )
 }

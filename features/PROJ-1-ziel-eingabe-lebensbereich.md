@@ -1,6 +1,6 @@
 # PROJ-1: Ziel-Eingabe & Lebensbereich-Profil
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
 **Architected:** 2026-04-03
@@ -106,6 +106,24 @@ Supabase-Tabelle (für PROJ-5): goals
 
 ### Neue Pakete
 Keine – alle shadcn/ui-Komponenten (Tabs, Input, Textarea, Button, Badge, Card, Form) bereits installiert.
+
+## Implementation Notes
+**Frontend completed 2026-04-03**
+
+### Dateien erstellt:
+- `src/lib/types.ts` – GoalProfile, LifeAreaGoal Types + Farbkonstanten
+- `src/hooks/useGoalStorage.ts` – localStorage-Abstraktion
+- `src/app/page.tsx` – Landing Page (ersetzt Next.js Default)
+- `src/app/onboarding/page.tsx` – 4-Schritt-Wizard
+- `src/components/onboarding/StepVisionInput.tsx` – Schritt 1
+- `src/components/onboarding/StepLifeAreaSelector.tsx` – Schritt 2
+- `src/components/onboarding/StepGoalInput.tsx` – Schritt 3 (Tabs pro Lebensbereich)
+- `src/components/onboarding/StepGoalSummary.tsx` – Schritt 4
+- `src/app/goals/page.tsx` – Ziele bearbeiten mit Auto-Save
+
+### Abweichungen vom Spec:
+- "Roadmap generieren"-Button in `/goals` deaktiviert (wird in PROJ-2 aktiviert)
+- Sprache: Vollständig Deutsch
 
 ## QA Test Results
 _To be added by /qa_

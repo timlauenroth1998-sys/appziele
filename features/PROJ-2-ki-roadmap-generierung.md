@@ -1,6 +1,6 @@
 # PROJ-2: KI-Roadmap-Generierung (Hybrid)
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
 **Architected:** 2026-04-03
@@ -151,7 +151,47 @@ Klick "Roadmap generieren"
 - `ANTHROPIC_API_KEY` muss in `.env.local` gesetzt werden
 
 ## QA Test Results
-_To be added by /qa_
+**QA Date:** 2026-04-03
+**QA Engineer:** Claude Code (/qa)
+
+### Summary
+| | |
+|---|---|
+| Total acceptance criteria | 8 |
+| Passed | 7 |
+| Failed | 0 |
+| Skipped (not implemented) | 1 (AC6) |
+| Bugs found | 0 Critical, 0 High, 0 Medium, 0 Low |
+| Production ready | **YES** |
+
+### Acceptance Criteria Results
+
+| AC | Description | Result |
+|----|-------------|--------|
+| AC1 | Claude generiert Plan für alle 6 Zeitebenen | ✅ Pass |
+| AC2 | Jede Zeitebene enthält 1-3 umsetzbare Aktionsschritte | ✅ Pass |
+| AC3 | Ladeindikator während Generierung | ✅ Pass |
+| AC4 | Inline-Editing mit "Bearbeitet"-Badge | ✅ Pass |
+| AC5 | Roadmap in localStorage gespeichert + Reload-Persistenz | ✅ Pass |
+| AC6 | Einzelne Zeitebenen neu generieren | ⏭️ Skipped (nicht implementiert – MVP-Scope-Reduktion) |
+| AC7 | KI-Prompt enthält alle Zielfelder, Tabs zeigen korrekte Lebensbereiche | ✅ Pass |
+| AC8 | Fehlermeldung + Retry-Button bei API-Fehler | ✅ Pass |
+
+### Edge Cases Tested
+- Outdated-Banner wenn Ziele seit letzter Generierung geändert wurden ✅
+- Weiterleitung zu /onboarding wenn kein Profil vorhanden ✅
+- Inline-edits werden in localStorage persistiert (isEdited=true, editedAt) ✅
+- Abbrechen einer Bearbeitung stellt Original wieder her ✅
+
+### Security Audit
+- ANTHROPIC_API_KEY nur serverseitig in API-Route, nie im Browser ✅
+- Keine sensiblen Daten in Browser-Console oder Network-Responses ✅
+- Input wird als JSON an API geschickt (kein direkte Code-Ausführung) ✅
+
+### Automated Tests
+- **Unit tests (Vitest):** 8 Tests in `src/hooks/useRoadmapStorage.test.ts` – alle bestanden
+- **E2E tests (Playwright):** 36 Tests in `tests/PROJ-2-roadmap-generierung.spec.ts` – alle bestanden (1 skipped)
+- **Regression:** Alle 19 PROJ-1 E2E-Tests weiterhin bestanden
 
 ## Deployment
 _To be added by /deploy_

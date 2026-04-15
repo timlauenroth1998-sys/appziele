@@ -95,7 +95,7 @@ Jeder Eintrag soll sich anfühlen wie ein Coaching-Moment. Er soll:
 - Die Sprache und Tiefe eines erfahrenen Coaches tragen
 - 2-4 Sätze lang sein – reich, konkret, lebendig`
 
-function buildAreaPrompt(
+function buildContextBlock(
   area: GoalProfile['lifeAreas'][0],
   vision5y: string,
   libraryContext: string
@@ -114,9 +114,6 @@ ${visionLine}
 LEBENSBEREICH: ${area.name}
 ${goals}
 
-DEINE AUFGABE:
-Erstelle einen vollständigen, tiefgreifenden Coaching-Fahrplan NUR für den Lebensbereich "${area.name}".
-
 PRO ZEITEBENE: 2-3 Einträge. Jeder Eintrag ist ein vollständiger Coaching-Impuls:
 - Formuliert in Ich-Form, emotional lebendig (VAKOG)
 - SMART: konkret, messbar, terminiert
@@ -124,32 +121,86 @@ PRO ZEITEBENE: 2-3 Einträge. Jeder Eintrag ist ein vollständiger Coaching-Impu
 - Reich an Coaching-DNA: Ressourcenfragen, Skalierung, Wunderfrage-Perspektive
 - 2-4 Sätze pro Eintrag
 
-FORMAT pro Eintrag (als einzelner "text"-Wert):
+FORMAT pro Eintrag:
 "[Emotionale Ich-Vision in Präsens]. [Konkrete SMART-Formulierung mit Datum/Zahl]. → Erster Schritt: [sofort umsetzbare Maßnahme] → Reflexionsfrage: [lösungsfokussierte Frage die Energie freisetzt]"
 
-WICHTIG: Antworte NUR mit kompaktem JSON ohne Zeilenumbrüche oder Einrückungen – alles in einer einzigen Zeile:
-{"lifeAreaId":"${area.id}","lifeAreaName":"${area.name}","timeline":{"vision5y":[{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."}]},"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."}]}}}`
+WICHTIG: Antworte NUR mit kompaktem JSON ohne Zeilenumbrüche oder Einrückungen – alles in einer einzigen Zeile.`
 }
 
-function parseAreaResult(
-  rawText: string,
-  area: GoalProfile['lifeAreas'][0]
-): LifeAreaRoadmap {
-  const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error(`KI-Antwort für "${area.name}" konnte nicht verarbeitet werden.`)
+// Call 1: Strategic horizon (vision, 3y, 1y, quarters)
+function buildStrategicPrompt(
+  area: GoalProfile['lifeAreas'][0],
+  vision5y: string,
+  libraryContext: string
+): string {
+  return `${buildContextBlock(area, vision5y, libraryContext)}
 
-  const parsed = JSON.parse(jsonMatch[0]) as { lifeAreaId: string; lifeAreaName: string; timeline: Record<string, unknown> }
-  const t = parsed.timeline
+DEINE AUFGABE – NUR STRATEGISCHE EBENEN:
+Erstelle die strategischen Zeitebenen für Lebensbereich "${area.name}".
+
+{"vision5y":[{"text":"..."},{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."},{"text":"..."}]}}`
+}
+
+// Call 2: Tactical horizon (months, weeks)
+function buildTacticalPrompt(
+  area: GoalProfile['lifeAreas'][0],
+  vision5y: string,
+  libraryContext: string
+): string {
+  return `${buildContextBlock(area, vision5y, libraryContext)}
+
+DEINE AUFGABE – NUR OPERATIVE EBENEN:
+Erstelle die monatlichen und wöchentlichen Zeitebenen für Lebensbereich "${area.name}".
+
+{"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."},{"text":"..."}]}}`
+}
+
+const toItems = (arr: unknown): RoadmapItem[] =>
+  Array.isArray(arr) ? arr.map((x: unknown) => makeItem(
+    typeof x === 'object' && x !== null && 'text' in x
+      ? String((x as { text: string }).text)
+      : String(x)
+  )) : []
+
+async function generateArea(
+  client: Anthropic,
+  area: GoalProfile['lifeAreas'][0],
+  vision5y: string,
+  libraryContext: string
+): Promise<LifeAreaRoadmap> {
+  // Run strategic and tactical calls in parallel
+  const [strategicMsg, tacticalMsg] = await Promise.all([
+    client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 7000,
+      messages: [{ role: 'user', content: buildStrategicPrompt(area, vision5y, libraryContext) }],
+    }),
+    client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 7000,
+      messages: [{ role: 'user', content: buildTacticalPrompt(area, vision5y, libraryContext) }],
+    }),
+  ])
+
+  const strategicText = strategicMsg.content[0].type === 'text' ? strategicMsg.content[0].text : ''
+  const tacticalText  = tacticalMsg.content[0].type === 'text'  ? tacticalMsg.content[0].text  : ''
+
+  const strategicMatch = strategicText.match(/\{[\s\S]*\}/)
+  const tacticalMatch  = tacticalText.match(/\{[\s\S]*\}/)
+
+  if (!strategicMatch) throw new Error(`Strategische Antwort für "${area.name}" ungültig.`)
+  if (!tacticalMatch)  throw new Error(`Taktische Antwort für "${area.name}" ungültig.`)
+
+  const s = JSON.parse(strategicMatch[0]) as Record<string, unknown>
+  const t = JSON.parse(tacticalMatch[0])  as Record<string, unknown>
+
   const tl = emptyTimeline()
 
-  const toItems = (arr: unknown): RoadmapItem[] =>
-    Array.isArray(arr) ? arr.map((x: unknown) => makeItem(typeof x === 'object' && x !== null && 'text' in x ? String((x as {text: string}).text) : String(x))) : []
+  tl.vision5y = toItems(s.vision5y)
+  tl.goals3y  = toItems(s.goals3y)
+  tl.goals1y  = toItems(s.goals1y)
 
-  tl.vision5y = toItems(t.vision5y)
-  tl.goals3y  = toItems(t.goals3y)
-  tl.goals1y  = toItems(t.goals1y)
-
-  const q = t.quarters as Record<string, unknown> | undefined
+  const q = s.quarters as Record<string, unknown> | undefined
   if (q) {
     tl.quarters.q1 = toItems(q.q1)
     tl.quarters.q2 = toItems(q.q2)
@@ -172,7 +223,7 @@ function parseAreaResult(
     tl.weeks.w4 = toItems(w.w4)
   }
 
-  return { lifeAreaId: parsed.lifeAreaId, lifeAreaName: parsed.lifeAreaName, timeline: tl }
+  return { lifeAreaId: area.id, lifeAreaName: area.name, timeline: tl }
 }
 
 export async function POST(req: NextRequest) {
@@ -205,17 +256,11 @@ export async function POST(req: NextRequest) {
       try {
         const libraryContext = await fetchLibraryContext(profile)
 
-        // Generate all areas in parallel — Edge runtime has no execution timeout
+        // Each area makes 2 parallel sub-calls (strategic + tactical), all areas run in parallel
         await Promise.all(
           profile.lifeAreas.map(async (area) => {
             try {
-              const message = await client.messages.create({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 16000,
-                messages: [{ role: 'user', content: buildAreaPrompt(area, profile.vision5y ?? '', libraryContext) }],
-              })
-              const rawText = message.content[0].type === 'text' ? message.content[0].text : ''
-              const lifeAreaRoadmap = parseAreaResult(rawText, area)
+              const lifeAreaRoadmap = await generateArea(client, area, profile.vision5y ?? '', libraryContext)
               send({ type: 'area', data: lifeAreaRoadmap })
             } catch (err) {
               console.error(`[roadmap/generate] Area "${area.name}" failed:`, err)

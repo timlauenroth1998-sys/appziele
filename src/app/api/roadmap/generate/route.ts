@@ -92,16 +92,14 @@ EINGABEN DES KLIENTEN:
 ${areasText}
 
 DEINE AUFGABE:
-1. Wandle vage Wünsche in SMART-Ziele um (Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert) – immer aus der Ich-will/Ich-bin-Perspektive formuliert
-2. Emotionalisiere Ziele mit VAKOG: Formuliere so, dass der Klient das Ziel innerlich spürt und sieht
-3. Erstelle 2-3 Einträge pro Zeitebene – jeder Eintrag = SMART-Ziel + konkrete erste Umsetzungsidee
-4. Format: "SMART-Ziel (emotional, in Ich-Form) → Erster Schritt: sofort umsetzbare Maßnahme"
-   Beispiel: "Ich führe mein Team mit klarer Vision und spüre täglich die Energie, die das auslöst → Erster Schritt: Wöchentliches 15-Min-Reflexionsjournal jeden Freitag ab 17 Uhr"
-5. Nutze lösungsfokussierte Perspektive: Was WILL der Klient, nicht was will er vermeiden
-6. Leite alle fehlenden Zeitebenen intelligent aus den Werten und Zielen ab
+1. Wandle vage Wünsche in SMART-Ziele um – immer in Ich-Form, emotional, messbar
+2. Format pro Eintrag: "Ich [SMART-Ziel] → Erster Schritt: [sofortige Maßnahme]" (max. 20 Wörter gesamt)
+3. Genau 1 Eintrag pro Zeitebene (vision5y, goals3y, goals1y, q1-q4, jan-dec, w1-w4)
+4. Lösungsfokussiert: Was der Klient WILL, nicht was er vermeiden soll
+5. Fehlende Zeitebenen aus den Zielen ableiten
 
 Antworte NUR mit validem JSON (kein Markdown, keine Erklärungen):
-{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."}]},"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."}]}}}]}
+{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."}],"goals1y":[{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}]}
 
 Erstelle den Plan für alle ${profile.lifeAreas.length} Lebensbereiche.`
 }
@@ -126,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 6000,
+      max_tokens: 3000,
       messages: [{ role: 'user', content: buildPrompt(profile, libraryContext) }],
     })
 

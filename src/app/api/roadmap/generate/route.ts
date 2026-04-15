@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       profile.lifeAreas.map(area =>
         client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1500,
+          max_tokens: 2000,
           messages: [{ role: 'user', content: buildAreaPrompt(area, profile.vision5y ?? '', libraryContext) }],
         })
       )

@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
 import { useRoadmapStorage } from '@/hooks/useRoadmapStorage'
 import { TimelineAccordion } from '@/components/roadmap/TimelineAccordion'
-import { Roadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
+import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
 type Status = 'idle' | 'generating' | 'done' | 'error'
 
@@ -58,15 +58,11 @@ export default function RoadmapPage() {
     if (!profile) return
     setStatus('generating')
     setError('')
-    setProgress(0)
+    setProgress(5)
+    setProgressMsg(GENERATING_MESSAGES[0])
 
-    // Animate progress while waiting
-    let msgIdx = 0
-    const interval = setInterval(() => {
-      setProgress(p => Math.min(p + 12, 88))
-      msgIdx = (msgIdx + 1) % GENERATING_MESSAGES.length
-      setProgressMsg(GENERATING_MESSAGES[msgIdx])
-    }, 1200)
+    const collectedAreas: LifeAreaRoadmap[] = []
+    const total = profile.lifeAreas.length
 
     try {
       const res = await fetch('/api/roadmap/generate', {
@@ -75,20 +71,66 @@ export default function RoadmapPage() {
         body: JSON.stringify(profile),
       })
 
-      clearInterval(interval)
-
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error ?? 'Unbekannter Fehler')
       }
 
-      const data: Roadmap = await res.json()
-      setProgress(100)
-      saveRoadmap(data)
-      setLocalRoadmap(data)
-      setStatus('done')
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          const msg = JSON.parse(line) as { type: string; data?: LifeAreaRoadmap; profileHash?: string; areaName?: string; message?: string }
+
+          if (msg.type === 'area' && msg.data) {
+            collectedAreas.push(msg.data)
+            const p = 5 + Math.round((collectedAreas.length / total) * 90)
+            setProgress(p)
+            setProgressMsg(`${collectedAreas.length} von ${total} Lebensbereichen fertig...`)
+            setLocalRoadmap({
+              generatedAt: new Date().toISOString(),
+              profileHash: msg.profileHash ?? '',
+              lifeAreaRoadmaps: [...collectedAreas],
+            })
+          } else if (msg.type === 'done') {
+            const finalRoadmap: Roadmap = {
+              generatedAt: new Date().toISOString(),
+              profileHash: msg.profileHash ?? profileHash(profile),
+              lifeAreaRoadmaps: collectedAreas,
+            }
+            setProgress(100)
+            saveRoadmap(finalRoadmap)
+            setLocalRoadmap(finalRoadmap)
+            setStatus('done')
+          } else if (msg.type === 'error') {
+            throw new Error(msg.message)
+          }
+          // area_error: area failed but others can still succeed — ignore silently
+        }
+      }
+
+      // Fallback: stream ended without explicit 'done'
+      if (collectedAreas.length > 0) {
+        const finalRoadmap: Roadmap = {
+          generatedAt: new Date().toISOString(),
+          profileHash: profileHash(profile),
+          lifeAreaRoadmaps: collectedAreas,
+        }
+        saveRoadmap(finalRoadmap)
+        setLocalRoadmap(finalRoadmap)
+        setStatus('done')
+      }
     } catch (err) {
-      clearInterval(interval)
       setError(err instanceof Error ? err.message : 'Generierung fehlgeschlagen.')
       setStatus('error')
     }

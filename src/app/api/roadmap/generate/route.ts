@@ -90,7 +90,7 @@ Regeln:
 - Max. 25 Wörter pro Eintrag
 - Lösungsfokussiert: was der Klient WILL
 
-Antworte NUR mit validem JSON:
+WICHTIG: Antworte NUR mit kompaktem JSON ohne Zeilenumbrüche oder Einrückungen – alles in einer einzigen Zeile:
 {"lifeAreaId":"${area.id}","lifeAreaName":"${area.name}","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."}],"goals1y":[{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}`
 }
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       profile.lifeAreas.map(area =>
         client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
+          max_tokens: 3000,
           messages: [{ role: 'user', content: buildAreaPrompt(area, profile.vision5y ?? '', libraryContext) }],
         })
       )

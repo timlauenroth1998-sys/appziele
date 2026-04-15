@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { GoalProfile, Roadmap, LifeAreaRoadmap, RoadmapTimeline, RoadmapItem } from '@/lib/types'
+import { embedQuery } from '@/lib/voyageai'
+import { createServerClient } from '@/lib/supabase-server'
 
 // Extend Vercel function timeout (requires Pro plan; no-op on Hobby but harmless)
 export const maxDuration = 60
@@ -23,11 +25,39 @@ function emptyTimeline(): RoadmapTimeline {
   }
 }
 
+async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
+  try {
+    const query = [
+      profile.vision5y,
+      ...profile.lifeAreas.map(a => `${a.name}: ${a.yearGoal}`),
+    ].filter(Boolean).join(' ')
+
+    const embedding = await embedQuery(query)
+    const supabase = createServerClient()
+    const { data } = await supabase.rpc('match_chunks', {
+      query_embedding: embedding,
+      match_count: 5,
+      min_similarity: 0.3,
+    })
+
+    if (!data?.length) return ''
+
+    const passages = (data as Array<{ content: string; document_name: string }>)
+      .map(d => `[${d.document_name}]: ${d.content}`)
+      .join('\n\n')
+
+    return `\n\nRELEVANTE AUSZÜGE AUS DER COACHING-BIBLIOTHEK (nutze diese als Inspiration):\n${passages}`
+  } catch {
+    // Library context is optional — continue without it if unavailable
+    return ''
+  }
+}
+
 function profileHash(profile: GoalProfile): string {
   return Buffer.from(JSON.stringify(profile.lifeAreas)).toString('base64').slice(0, 16)
 }
 
-function buildPrompt(profile: GoalProfile): string {
+function buildPrompt(profile: GoalProfile, libraryContext = ''): string {
   const areasText = profile.lifeAreas.map(area => {
     const lines = [`Lebensbereich: ${area.name}`]
     if (area.yearGoal)    lines.push(`  Jahresziel: ${area.yearGoal}`)
@@ -41,7 +71,7 @@ function buildPrompt(profile: GoalProfile): string {
     ? `\n\n5-Jahres-Vision des Nutzers:\n${profile.vision5y}`
     : ''
 
-  return `Du bist ein erfahrener Executive Life-Coach für Führungskräfte. Deine Arbeit basiert auf folgender Coaching-DNA:
+  return `Du bist ein erfahrener Executive Life-Coach für Führungskräfte. Deine Arbeit basiert auf folgender Coaching-DNA:${libraryContext}
 
 DEINE COACHING-PHILOSOPHIE:
 - Erst Klarheit über Identität und Werte schaffen ("Wer will ich SEIN?"), dann Ziele setzen
@@ -91,10 +121,13 @@ export async function POST(req: NextRequest) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+    // RAG: fetch relevant passages from coaching library (optional — silent fallback)
+    const libraryContext = await fetchLibraryContext(profile)
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 6000,
-      messages: [{ role: 'user', content: buildPrompt(profile) }],
+      messages: [{ role: 'user', content: buildPrompt(profile, libraryContext) }],
     })
 
     const rawText = message.content[0].type === 'text' ? message.content[0].text : ''

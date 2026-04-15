@@ -57,51 +57,41 @@ function profileHash(profile: GoalProfile): string {
   return Buffer.from(JSON.stringify(profile.lifeAreas)).toString('base64').slice(0, 16)
 }
 
-function buildPrompt(profile: GoalProfile, libraryContext = ''): string {
-  const areasText = profile.lifeAreas.map(area => {
-    const lines = [`Lebensbereich: ${area.name}`]
-    if (area.yearGoal)    lines.push(`  Jahresziel: ${area.yearGoal}`)
-    if (area.quarterGoal) lines.push(`  Quartalsziel: ${area.quarterGoal}`)
-    if (area.monthGoal)   lines.push(`  Monatsziel: ${area.monthGoal}`)
-    if (area.weekGoal)    lines.push(`  Wochenziel: ${area.weekGoal}`)
-    return lines.join('\n')
-  }).join('\n\n')
+const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach für Führungskräfte mit folgender Coaching-DNA:
+- Lösungsfokussiert (de Shazer): Stärken nutzen, nicht Probleme analysieren
+- VAKOG (NLP): Ziele mit allen Sinnen erleben – sehen, hören, fühlen
+- Ikigai: Ziele im Schnittfeld von Leidenschaft, Stärke und Sinn
+- SMART: Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert
+- Wunderfrage-Perspektive: Ziele als bereits erreichte Realität formulieren`
 
-  const vision = profile.vision5y
-    ? `\n\n5-Jahres-Vision des Nutzers:\n${profile.vision5y}`
-    : ''
+function buildAreaPrompt(
+  area: GoalProfile['lifeAreas'][0],
+  vision5y: string,
+  libraryContext: string
+): string {
+  const goals = [
+    area.yearGoal    && `Jahresziel: ${area.yearGoal}`,
+    area.quarterGoal && `Quartalsziel: ${area.quarterGoal}`,
+    area.monthGoal   && `Monatsziel: ${area.monthGoal}`,
+    area.weekGoal    && `Wochenziel: ${area.weekGoal}`,
+  ].filter(Boolean).join('\n')
 
-  return `Du bist ein erfahrener Executive Life-Coach für Führungskräfte. Deine Arbeit basiert auf folgender Coaching-DNA:${libraryContext}
+  const visionLine = vision5y ? `\n5-Jahres-Vision: ${vision5y}` : ''
 
-DEINE COACHING-PHILOSOPHIE:
-- Erst Klarheit über Identität und Werte schaffen ("Wer will ich SEIN?"), dann Ziele setzen
-- Lösungsfokussiert nach Steve de Shazer: "Lösungen lauern überall" – Stärken und Ausnahmen nutzen, nicht Probleme analysieren
-- VAKOG (NLP): Ziele mit allen Sinnen erleben lassen – Was siehst, hörst, fühlst, riechst, schmeckst du, wenn du das Ziel erreicht hast?
-- Ikigai: Ziele im Schnittfeld von Leidenschaft, Stärke, Bedarf und Sinn formulieren
-- Systemisches Denken: Kontext, Umfeld und Beziehungen mitdenken
-- Lebensbereichsscanning: IST-Zustand (1-10) → SOLL-Wert → Priorisierung
+  return `${COACH_DNA}${libraryContext}${visionLine}
 
-DEINE FRAGEHALTUNG (fließt implizit in die Ziele ein):
-- Ressourcenorientiert: "Was ist in guten Zeiten anders?" / "Was soll so bleiben wie es ist?"
-- Lösungsfokussiert: "Woran würdest du erkennen, dass du dein Ziel erreicht hast?"
-- Wunderfrage-Perspektive: Ziele so formulieren als wären sie bereits Realität
-- Reframing: Herausforderungen als Wachstumschancen sehen
-- Skalierung: Präzise, messbare Formulierungen (%, Datum, konkrete Zahl)${vision}
+Lebensbereich: ${area.name}
+${goals}
 
-EINGABEN DES KLIENTEN:
-${areasText}
+Erstelle einen vollständigen Fahrplan NUR für diesen Lebensbereich.
+Regeln:
+- Genau 1 Eintrag pro Zeitebene
+- Format: "Ich [SMART-Ziel, emotional] → Erster Schritt: [sofortige Maßnahme]"
+- Max. 25 Wörter pro Eintrag
+- Lösungsfokussiert: was der Klient WILL
 
-DEINE AUFGABE:
-1. Wandle vage Wünsche in SMART-Ziele um – immer in Ich-Form, emotional, messbar
-2. Format pro Eintrag: "Ich [SMART-Ziel] → Erster Schritt: [sofortige Maßnahme]" (max. 20 Wörter gesamt)
-3. Genau 1 Eintrag pro Zeitebene (vision5y, goals3y, goals1y, q1-q4, jan-dec, w1-w4)
-4. Lösungsfokussiert: Was der Klient WILL, nicht was er vermeiden soll
-5. Fehlende Zeitebenen aus den Zielen ableiten
-
-Antworte NUR mit validem JSON (kein Markdown, keine Erklärungen):
-{"lifeAreaRoadmaps":[{"lifeAreaId":"<id>","lifeAreaName":"<name>","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."}],"goals1y":[{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}]}
-
-Erstelle den Plan für alle ${profile.lifeAreas.length} Lebensbereiche.`
+Antworte NUR mit validem JSON:
+{"lifeAreaId":"${area.id}","lifeAreaName":"${area.name}","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."}],"goals1y":[{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}`
 }
 
 export async function POST(req: NextRequest) {
@@ -122,23 +112,24 @@ export async function POST(req: NextRequest) {
     // RAG: fetch relevant passages from coaching library (optional — silent fallback)
     const libraryContext = await fetchLibraryContext(profile)
 
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
-      messages: [{ role: 'user', content: buildPrompt(profile, libraryContext) }],
-    })
+    // Generate each life area in parallel — one small focused API call per area
+    const areaResults = await Promise.all(
+      profile.lifeAreas.map(area =>
+        client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1500,
+          messages: [{ role: 'user', content: buildAreaPrompt(area, profile.vision5y ?? '', libraryContext) }],
+        })
+      )
+    )
 
-    const rawText = message.content[0].type === 'text' ? message.content[0].text : ''
+    const lifeAreaRoadmaps: LifeAreaRoadmap[] = areaResults.map((message, idx) => {
+      const rawText = message.content[0].type === 'text' ? message.content[0].text : ''
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error(`KI-Antwort für "${profile.lifeAreas[idx].name}" konnte nicht verarbeitet werden.`)
 
-    // Parse JSON – strip potential markdown code fences
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      return NextResponse.json({ error: 'KI-Antwort konnte nicht verarbeitet werden.' }, { status: 500 })
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]) as { lifeAreaRoadmaps: Array<{ lifeAreaId: string; lifeAreaName: string; timeline: Record<string, unknown> }> }
-
-    const lifeAreaRoadmaps: LifeAreaRoadmap[] = parsed.lifeAreaRoadmaps.map(area => {
+      const parsed = JSON.parse(jsonMatch[0]) as { lifeAreaId: string; lifeAreaName: string; timeline: Record<string, unknown> }
+      const area = parsed
       const t = area.timeline as Record<string, unknown>
       const tl = emptyTimeline()
 
@@ -173,7 +164,7 @@ export async function POST(req: NextRequest) {
       }
 
       return { lifeAreaId: area.lifeAreaId, lifeAreaName: area.lifeAreaName, timeline: tl }
-    })
+    })  // end areaResults.map
 
     const roadmap: Roadmap = {
       generatedAt: new Date().toISOString(),

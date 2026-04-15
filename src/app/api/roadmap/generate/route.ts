@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { jsonrepair } from 'jsonrepair'
 import { GoalProfile, LifeAreaRoadmap, RoadmapTimeline, RoadmapItem } from '@/lib/types'
 import { embedQuery } from '@/lib/voyageai'
 import { createServerClient } from '@/lib/supabase-server'
@@ -92,7 +93,7 @@ function call(client: Anthropic, prompt: string) {
 function extractJson(text: string, label: string): Record<string, unknown> {
   const match = text.match(/\{[\s\S]*\}/)
   if (!match) throw new Error(`JSON für "${label}" nicht gefunden.`)
-  return JSON.parse(match[0]) as Record<string, unknown>
+  return JSON.parse(jsonrepair(match[0])) as Record<string, unknown>
 }
 
 const toItems = (arr: unknown): RoadmapItem[] =>

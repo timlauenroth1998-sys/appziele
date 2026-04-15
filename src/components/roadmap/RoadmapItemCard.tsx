@@ -9,6 +9,8 @@ import { RoadmapItem } from '@/lib/types'
 interface Props {
   item: RoadmapItem
   onSave: (updated: RoadmapItem) => void
+  completed?: boolean
+  onToggleComplete?: (id: string) => void
 }
 
 interface ParsedEntry {
@@ -33,7 +35,7 @@ function parseEntry(text: string): ParsedEntry {
   }
 }
 
-export function RoadmapItemCard({ item, onSave }: Props) {
+export function RoadmapItemCard({ item, onSave, completed = false, onToggleComplete }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.text)
 
@@ -68,7 +70,7 @@ export function RoadmapItemCard({ item, onSave }: Props) {
   const parsed = parseEntry(item.text)
 
   return (
-    <div className="group relative rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+    <div className={`group relative rounded-xl border bg-white shadow-sm hover:shadow-md transition-all overflow-hidden ${completed ? 'border-green-200 opacity-75' : 'border-gray-100'}`}>
       {/* Edit button */}
       <button
         type="button"
@@ -86,9 +88,25 @@ export function RoadmapItemCard({ item, onSave }: Props) {
         </div>
       )}
 
-      {/* Main goal */}
-      <div className="px-4 pt-4 pb-3">
-        <p className="text-sm font-medium text-gray-900 leading-relaxed pr-8">{parsed.goal}</p>
+      {/* Main goal with checkbox */}
+      <div className="px-4 pt-4 pb-3 flex items-start gap-3">
+        {onToggleComplete && (
+          <button
+            type="button"
+            onClick={() => onToggleComplete(item.id)}
+            aria-label={completed ? 'Als offen markieren' : 'Als erledigt markieren'}
+            className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 transition-colors flex items-center justify-center ${
+              completed
+                ? 'bg-green-500 border-green-500 text-white'
+                : 'border-gray-300 hover:border-green-400'
+            }`}
+          >
+            {completed && <span className="text-xs leading-none">✓</span>}
+          </button>
+        )}
+        <p className={`text-sm font-medium leading-relaxed pr-8 flex-1 ${completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+          {parsed.goal}
+        </p>
       </div>
 
       {/* First step */}

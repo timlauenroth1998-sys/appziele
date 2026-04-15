@@ -11,6 +11,7 @@ import { useRoadmapStorage } from '@/hooks/useRoadmapStorage'
 import { useCompletions } from '@/hooks/useCompletions'
 import { TimelineAccordion } from '@/components/roadmap/TimelineAccordion'
 import { WeekFocusView } from '@/components/roadmap/WeekFocusView'
+import { YearPlanView } from '@/components/roadmap/YearPlanView'
 import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
 type Status = 'idle' | 'generating' | 'done' | 'error'
@@ -282,11 +283,12 @@ export default function RoadmapPage() {
         {localRoadmap && localRoadmap.lifeAreaRoadmaps.length > 0 && (
           <Tabs value={activeArea} onValueChange={setActiveArea}>
             <TabsList className="flex flex-wrap h-auto gap-1 bg-gray-100 p-1 mb-4">
-              {/* "Diese Woche" tab */}
               <TabsTrigger value="__week__" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 📅 Diese Woche
               </TabsTrigger>
-              {/* Per-area tabs */}
+              <TabsTrigger value="__year__" className="text-xs sm:text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                📆 Jahresplan
+              </TabsTrigger>
               {localRoadmap.lifeAreaRoadmaps.map(lar => {
                 const color = areaColors[lar.lifeAreaId] ?? 'blue'
                 const colorMap = LIFE_AREA_COLOR_MAP[color as keyof typeof LIFE_AREA_COLOR_MAP] ?? LIFE_AREA_COLOR_MAP.blue
@@ -303,7 +305,6 @@ export default function RoadmapPage() {
               })}
             </TabsList>
 
-            {/* Diese Woche */}
             <TabsContent value="__week__">
               <WeekFocusView
                 lifeAreaRoadmaps={localRoadmap.lifeAreaRoadmaps}
@@ -314,7 +315,16 @@ export default function RoadmapPage() {
               />
             </TabsContent>
 
-            {/* Per-area timeline */}
+            <TabsContent value="__year__">
+              <YearPlanView
+                lifeAreaRoadmaps={localRoadmap.lifeAreaRoadmaps}
+                areaColors={areaColors}
+                completed={completed}
+                onToggleComplete={toggle}
+                onUpdateItem={(areaId, section, subKey, item) => updateItem(areaId, section, subKey, item)}
+              />
+            </TabsContent>
+
             {localRoadmap.lifeAreaRoadmaps.map(lar => (
               <TabsContent key={lar.lifeAreaId} value={lar.lifeAreaId}>
                 <TimelineAccordion

@@ -69,9 +69,15 @@ const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach. Deine Coaching-D
 5. WUNDERFRAGE: "Was ist anders, wenn das Ziel erreicht ist?"
 6. SKALIERUNG: Konkrete Zahlen, Daten, messbare Meilensteine
 
-QUALITÄTSSTANDARD: Jeder Eintrag = ein Coaching-Moment.
-FORMAT: "[Emotionale Ich-Vision]. [SMART-Formulierung mit Datum/Zahl]. → Erster Schritt: [Maßnahme] → Reflexionsfrage: [Lösungsfokussierte Frage]"
-Genau 2 Einträge pro Zeitebene. Jeder Eintrag 2-3 Sätze. In Ich-Form. Nur JSON, keine Erklärungen.`
+QUALITÄTSSTANDARD: Kurz, prägnant, kraftvoll – kein langer Fließtext.
+FORMAT (strikt einhalten):
+Zeile 1 (Ziel): 1 Satz. VAKOG-Einstieg + SMART (Datum/Zahl). Ich-Form. Max 25 Wörter.
+Zeile 2 (Schritt): "→ Erster Schritt: [1 konkreter Satz, max 15 Wörter]"
+Zeile 3 (Frage): "→ Reflexionsfrage: [1 kurze Frage, max 12 Wörter]"
+
+Beispiel: "Ich spüre Stolz, als ich am 31. Dezember 3 Retainer-Kunden à 3.000 Euro/Monat halte. → Erster Schritt: Heute 5 Wunschkunden auf LinkedIn identifizieren und anschreiben. → Reflexionsfrage: Was hat meinen letzten Abschluss wirklich ausgelöst?"
+
+Genau 2 Einträge pro Zeitebene. In Ich-Form. Nur JSON, keine Erklärungen.`
 
 function contextBlock(area: GoalProfile['lifeAreas'][0], vision5y: string, libraryContext: string): string {
   const goals = [

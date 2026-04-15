@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { extractText } from 'unpdf'
 import { createServerClient } from '@/lib/supabase-server'
-
-// pdf-parse is a CommonJS module
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdf = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>
 import { chunkText } from '@/lib/chunker'
 import { embedTexts } from '@/lib/voyageai'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const BATCH_SIZE = 10 // embed this many chunks at once
+const BATCH_SIZE = 10
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,10 +24,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Datei zu groß (max. 20 MB).' }, { status: 400 })
     }
 
-    // Parse PDF
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const parsed = await pdf(buffer)
-    const rawText = parsed.text
+    // Parse PDF (unpdf works natively in serverless environments)
+    const buffer = await file.arrayBuffer()
+    const { text: pages } = await extractText(new Uint8Array(buffer), { mergePages: true })
+    const rawText = Array.isArray(pages) ? pages.join('\n') : String(pages)
 
     if (!rawText || rawText.trim().length < 100) {
       return NextResponse.json({ error: 'PDF enthält keinen lesbaren Text.' }, { status: 400 })

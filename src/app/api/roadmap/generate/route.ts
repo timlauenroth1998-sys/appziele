@@ -4,7 +4,6 @@ import { GoalProfile, LifeAreaRoadmap, RoadmapTimeline, RoadmapItem } from '@/li
 import { embedQuery } from '@/lib/voyageai'
 import { createServerClient } from '@/lib/supabase-server'
 
-// Edge runtime: no execution timeout for streaming responses
 export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +35,7 @@ async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
     const supabase = createServerClient()
     const { data } = await supabase.rpc('match_chunks', {
       query_embedding: embedding,
-      match_count: 10,
+      match_count: 8,
       min_similarity: 0.25,
     })
 
@@ -46,7 +45,7 @@ async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
       .map(d => `[${d.document_name}]: ${d.content}`)
       .join('\n\n')
 
-    return `\n\nAUSZÜGE AUS DER COACHING-BIBLIOTHEK DES COACHES (diese Inhalte sind die Grundlage deiner Arbeit – wende sie aktiv an):\n${passages}`
+    return `\n\nAUSZÜGE AUS DER COACHING-BIBLIOTHEK (wende diese aktiv an):\n${passages}`
   } catch {
     return ''
   }
@@ -56,50 +55,19 @@ function profileHash(profile: GoalProfile): string {
   return btoa(JSON.stringify(profile.lifeAreas)).slice(0, 16)
 }
 
-const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach für Führungskräfte. Deine Arbeit ist geprägt von tiefer Menschenkenntnis, systemischem Denken und der Überzeugung, dass jeder Mensch die Ressourcen in sich trägt, die er braucht.
+const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach. Deine Coaching-DNA:
+1. LÖSUNGSFOKUSSIERT (de Shazer): Stärken, Ausnahmen, Ressourcen aktivieren
+2. VAKOG (NLP): Ziele visuell, auditiv, kinästhetisch erleben lassen
+3. IKIGAI: Ziele mit tieferem Sinn und Identität verbinden
+4. SMART+EMOTIONAL: Konkret, messbar, terminiert – aber lebendig und in Ich-Form
+5. WUNDERFRAGE: "Was ist anders, wenn das Ziel erreicht ist?"
+6. SKALIERUNG: Konkrete Zahlen, Daten, messbare Meilensteine
 
-DEINE COACHING-DNA (wende diese aktiv an):
+QUALITÄTSSTANDARD: Jeder Eintrag = ein Coaching-Moment.
+FORMAT: "[Emotionale Ich-Vision]. [SMART-Formulierung mit Datum/Zahl]. → Erster Schritt: [Maßnahme] → Reflexionsfrage: [Lösungsfokussierte Frage]"
+Genau 2 Einträge pro Zeitebene. Jeder Eintrag 2-3 Sätze. In Ich-Form. Nur JSON, keine Erklärungen.`
 
-1. LÖSUNGSFOKUSSIERT nach Steve de Shazer ("Lösungen lauern überall")
-   - Fokus auf Stärken, Ausnahmen und was bereits funktioniert
-   - Fragen wie: "Was war in guten Zeiten anders?" / "Woran erkennst du, dass du dein Ziel erreicht hast?"
-   - Ressourcen aktivieren statt Probleme analysieren
-
-2. VAKOG – Ziele mit ALLEN SINNEN erleben lassen (NLP)
-   - Visuell: Was siehst du, wenn du das Ziel erreicht hast?
-   - Auditiv: Was hörst du – was sagen andere, was sagst du dir selbst?
-   - Kinästhetisch: Was fühlst du in deinem Körper – Wärme, Leichtigkeit, Kraft?
-   - Formuliere Ziele so lebendig, dass der Klient sie innerlich erlebt
-
-3. IKIGAI – Ziele im Schnittfeld von Leidenschaft, Stärke, Bedarf und Sinn
-   - Frage immer: Warum ist dieses Ziel wirklich wichtig? Was steckt dahinter?
-   - Verbinde Ziele mit dem tieferen Sinn und der Identität des Klienten
-
-4. SMART + EMOTIONAL
-   - Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert
-   - ABER: nicht trocken – emotional, in Ich-Form, als lebendige Vision
-
-5. WUNDERFRAGE & SYSTEMISCHES DENKEN
-   - "Angenommen das Ziel wäre bereits erreicht – was ist dann anders?"
-   - Kontext, Umfeld und Beziehungen mitdenken
-   - Wer profitiert noch von diesem Ziel? Was verändert sich im System?
-
-6. SKALIERUNG & PRÄZISION
-   - Konkrete Zahlen, Daten, messbare Meilensteine
-   - "Auf einer Skala von 1-10 – wo stehst du heute, wo willst du hin?"
-
-QUALITÄTSSTANDARD FÜR JEDEN EINTRAG:
-Jeder Eintrag soll sich anfühlen wie ein Coaching-Moment. Er soll:
-- Den Klienten emotional berühren und motivieren
-- Eine klare Handlung auslösen
-- Die Sprache und Tiefe eines erfahrenen Coaches tragen
-- 2-4 Sätze lang sein – reich, konkret, lebendig`
-
-function buildContextBlock(
-  area: GoalProfile['lifeAreas'][0],
-  vision5y: string,
-  libraryContext: string
-): string {
+function contextBlock(area: GoalProfile['lifeAreas'][0], vision5y: string, libraryContext: string): string {
   const goals = [
     area.yearGoal    && `Jahresziel(e): ${area.yearGoal}`,
     area.quarterGoal && `Quartalsziel(e): ${area.quarterGoal}`,
@@ -107,52 +75,24 @@ function buildContextBlock(
     area.weekGoal    && `Wochenziel(e): ${area.weekGoal}`,
   ].filter(Boolean).join('\n')
 
-  const visionLine = vision5y ? `\n5-Jahres-Vision des Klienten: ${vision5y}\n` : ''
-
   return `${COACH_DNA}${libraryContext}
-${visionLine}
-LEBENSBEREICH: ${area.name}
-${goals}
-
-PRO ZEITEBENE: 2-3 Einträge. Jeder Eintrag ist ein vollständiger Coaching-Impuls:
-- Formuliert in Ich-Form, emotional lebendig (VAKOG)
-- SMART: konkret, messbar, terminiert
-- Mit einem unmittelbaren ersten Schritt
-- Reich an Coaching-DNA: Ressourcenfragen, Skalierung, Wunderfrage-Perspektive
-- 2-4 Sätze pro Eintrag
-
-FORMAT pro Eintrag:
-"[Emotionale Ich-Vision in Präsens]. [Konkrete SMART-Formulierung mit Datum/Zahl]. → Erster Schritt: [sofort umsetzbare Maßnahme] → Reflexionsfrage: [lösungsfokussierte Frage die Energie freisetzt]"
-
-WICHTIG: Antworte NUR mit kompaktem JSON ohne Zeilenumbrüche oder Einrückungen – alles in einer einzigen Zeile.`
+${vision5y ? `\n5-Jahres-Vision: ${vision5y}` : ''}
+Lebensbereich: ${area.name}
+${goals}`
 }
 
-// Call 1: Strategic horizon (vision, 3y, 1y, quarters)
-function buildStrategicPrompt(
-  area: GoalProfile['lifeAreas'][0],
-  vision5y: string,
-  libraryContext: string
-): string {
-  return `${buildContextBlock(area, vision5y, libraryContext)}
-
-DEINE AUFGABE – NUR STRATEGISCHE EBENEN:
-Erstelle die strategischen Zeitebenen für Lebensbereich "${area.name}".
-
-{"vision5y":[{"text":"..."},{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."},{"text":"..."}]}}`
+function call(client: Anthropic, prompt: string) {
+  return client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 4000,
+    messages: [{ role: 'user', content: prompt }],
+  })
 }
 
-// Call 2: Tactical horizon (months, weeks)
-function buildTacticalPrompt(
-  area: GoalProfile['lifeAreas'][0],
-  vision5y: string,
-  libraryContext: string
-): string {
-  return `${buildContextBlock(area, vision5y, libraryContext)}
-
-DEINE AUFGABE – NUR OPERATIVE EBENEN:
-Erstelle die monatlichen und wöchentlichen Zeitebenen für Lebensbereich "${area.name}".
-
-{"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."},{"text":"..."}]}}`
+function extractJson(text: string, label: string): Record<string, unknown> {
+  const match = text.match(/\{[\s\S]*\}/)
+  if (!match) throw new Error(`JSON für "${label}" nicht gefunden.`)
+  return JSON.parse(match[0]) as Record<string, unknown>
 }
 
 const toItems = (arr: unknown): RoadmapItem[] =>
@@ -168,31 +108,44 @@ async function generateArea(
   vision5y: string,
   libraryContext: string
 ): Promise<LifeAreaRoadmap> {
-  // Run strategic and tactical calls in parallel
-  const [strategicMsg, tacticalMsg] = await Promise.all([
-    client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 7000,
-      messages: [{ role: 'user', content: buildStrategicPrompt(area, vision5y, libraryContext) }],
-    }),
-    client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 7000,
-      messages: [{ role: 'user', content: buildTacticalPrompt(area, vision5y, libraryContext) }],
-    }),
+  const ctx = contextBlock(area, vision5y, libraryContext)
+  const name = area.name
+
+  // 4 parallel calls — each stays well under 4000 tokens
+  const [r1, r2, r3, r4] = await Promise.all([
+
+    // Call 1: Strategic (vision, 3y, 1y, quarters) — ~12 entries
+    call(client, `${ctx}
+
+AUFGABE: Strategische Ebenen für "${name}". Antworte NUR mit diesem JSON (eine Zeile):
+{"vision5y":[{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."}]}}`),
+
+    // Call 2: Months Jan–Jun — ~12 entries
+    call(client, `${ctx}
+
+AUFGABE: Monatsziele Januar bis Juni für "${name}". Antworte NUR mit diesem JSON (eine Zeile):
+{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}]}`),
+
+    // Call 3: Months Jul–Dec — ~12 entries
+    call(client, `${ctx}
+
+AUFGABE: Monatsziele Juli bis Dezember für "${name}". Antworte NUR mit diesem JSON (eine Zeile):
+{"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]}`),
+
+    // Call 4: Weeks — ~8 entries
+    call(client, `${ctx}
+
+AUFGABE: Wochenziele (Musterwoche) für "${name}". Antworte NUR mit diesem JSON (eine Zeile):
+{"w1":[{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."}]}`),
   ])
 
-  const strategicText = strategicMsg.content[0].type === 'text' ? strategicMsg.content[0].text : ''
-  const tacticalText  = tacticalMsg.content[0].type === 'text'  ? tacticalMsg.content[0].text  : ''
+  const getText = (msg: Awaited<ReturnType<typeof call>>) =>
+    msg.content[0].type === 'text' ? msg.content[0].text : ''
 
-  const strategicMatch = strategicText.match(/\{[\s\S]*\}/)
-  const tacticalMatch  = tacticalText.match(/\{[\s\S]*\}/)
-
-  if (!strategicMatch) throw new Error(`Strategische Antwort für "${area.name}" ungültig.`)
-  if (!tacticalMatch)  throw new Error(`Taktische Antwort für "${area.name}" ungültig.`)
-
-  const s = JSON.parse(strategicMatch[0]) as Record<string, unknown>
-  const t = JSON.parse(tacticalMatch[0])  as Record<string, unknown>
+  const s = extractJson(getText(r1), `${name} Strategie`)
+  const h1 = extractJson(getText(r2), `${name} Jan-Jun`)
+  const h2 = extractJson(getText(r3), `${name} Jul-Dez`)
+  const w = extractJson(getText(r4), `${name} Wochen`)
 
   const tl = emptyTimeline()
 
@@ -208,27 +161,15 @@ async function generateArea(
     tl.quarters.q4 = toItems(q.q4)
   }
 
-  const m = t.months as Record<string, unknown> | undefined
-  if (m) {
-    for (const key of ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'] as const) {
-      tl.months[key] = toItems(m[key])
-    }
-  }
-
-  const w = t.weeks as Record<string, unknown> | undefined
-  if (w) {
-    tl.weeks.w1 = toItems(w.w1)
-    tl.weeks.w2 = toItems(w.w2)
-    tl.weeks.w3 = toItems(w.w3)
-    tl.weeks.w4 = toItems(w.w4)
-  }
+  for (const key of ['jan','feb','mar','apr','may','jun'] as const) tl.months[key] = toItems(h1[key])
+  for (const key of ['jul','aug','sep','oct','nov','dec'] as const) tl.months[key] = toItems(h2[key])
+  for (const key of ['w1','w2','w3','w4'] as const) tl.weeks[key] = toItems(w[key])
 
   return { lifeAreaId: area.id, lifeAreaName: area.name, timeline: tl }
 }
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('[roadmap/generate] ANTHROPIC_API_KEY is not set')
     return NextResponse.json({ error: 'KI-Service nicht konfiguriert. Bitte ANTHROPIC_API_KEY in Vercel setzen.' }, { status: 500 })
   }
 
@@ -256,7 +197,6 @@ export async function POST(req: NextRequest) {
       try {
         const libraryContext = await fetchLibraryContext(profile)
 
-        // Each area makes 2 parallel sub-calls (strategic + tactical), all areas run in parallel
         await Promise.all(
           profile.lifeAreas.map(async (area) => {
             try {

@@ -12,10 +12,10 @@ interface Props {
 }
 
 const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 'monthGoal' | 'weekGoal'>; label: string; required: boolean; placeholder: string }[] = [
-  { key: 'yearGoal',    label: 'Jahresziel',    required: true,  placeholder: 'Was willst du dieses Jahr erreichen?' },
-  { key: 'quarterGoal', label: 'Quartalsziel',  required: false, placeholder: 'Was willst du im nächsten Quartal erreichen?' },
-  { key: 'monthGoal',   label: 'Monatsziel',    required: false, placeholder: 'Was willst du diesen Monat erreichen?' },
-  { key: 'weekGoal',    label: 'Wochenziel',    required: false, placeholder: 'Was willst du diese Woche erreichen?' },
+  { key: 'yearGoal',    label: 'Jahresziele',    required: true,  placeholder: 'Was willst du dieses Jahr erreichen?\nMehrere Ziele? Einfach jedes in eine neue Zeile.' },
+  { key: 'quarterGoal', label: 'Quartalsziele',  required: false, placeholder: 'Was willst du im nächsten Quartal erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
+  { key: 'monthGoal',   label: 'Monatsziele',    required: false, placeholder: 'Was willst du diesen Monat erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
+  { key: 'weekGoal',    label: 'Wochenziele',    required: false, placeholder: 'Was willst du diese Woche erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
 ]
 
 export function StepGoalInput({ lifeAreas, onChange, errors }: Props) {
@@ -30,7 +30,7 @@ export function StepGoalInput({ lifeAreas, onChange, errors }: Props) {
           Deine Ziele
         </h2>
         <p className="text-gray-500">
-          Gib für jeden Lebensbereich dein Jahresziel ein. Die anderen Felder sind optional – die KI leitet fehlende Ebenen für dich ab.
+          Gib für jeden Lebensbereich deine Ziele ein – du kannst mehrere pro Zeile angeben. Die anderen Felder sind optional – die KI leitet fehlende Ebenen für dich ab.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export function StepGoalInput({ lifeAreas, onChange, errors }: Props) {
                           placeholder={placeholder}
                           value={area[key]}
                           onChange={(e) => updateArea(area.id, key, e.target.value)}
-                          className={`min-h-[80px] resize-none bg-white ${errors[errorKey] ? 'border-red-400' : ''}`}
+                          className={`min-h-[100px] bg-white ${errors[errorKey] ? 'border-red-400' : ''}`}
                         />
                         {errors[errorKey] && (
                           <p className="text-xs text-red-500">{errors[errorKey]}</p>

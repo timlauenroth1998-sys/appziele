@@ -36,8 +36,8 @@ async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
     const supabase = createServerClient()
     const { data } = await supabase.rpc('match_chunks', {
       query_embedding: embedding,
-      match_count: 5,
-      min_similarity: 0.3,
+      match_count: 10,
+      min_similarity: 0.25,
     })
 
     if (!data?.length) return ''
@@ -46,7 +46,7 @@ async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
       .map(d => `[${d.document_name}]: ${d.content}`)
       .join('\n\n')
 
-    return `\n\nRELEVANTE AUSZÜGE AUS DER COACHING-BIBLIOTHEK (nutze diese als Inspiration):\n${passages}`
+    return `\n\nAUSZÜGE AUS DER COACHING-BIBLIOTHEK DES COACHES (diese Inhalte sind die Grundlage deiner Arbeit – wende sie aktiv an):\n${passages}`
   } catch {
     // Library context is optional — continue without it if unavailable
     return ''
@@ -57,12 +57,44 @@ function profileHash(profile: GoalProfile): string {
   return Buffer.from(JSON.stringify(profile.lifeAreas)).toString('base64').slice(0, 16)
 }
 
-const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach für Führungskräfte mit folgender Coaching-DNA:
-- Lösungsfokussiert (de Shazer): Stärken nutzen, nicht Probleme analysieren
-- VAKOG (NLP): Ziele mit allen Sinnen erleben – sehen, hören, fühlen
-- Ikigai: Ziele im Schnittfeld von Leidenschaft, Stärke und Sinn
-- SMART: Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert
-- Wunderfrage-Perspektive: Ziele als bereits erreichte Realität formulieren`
+const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach für Führungskräfte. Deine Arbeit ist geprägt von tiefer Menschenkenntnis, systemischem Denken und der Überzeugung, dass jeder Mensch die Ressourcen in sich trägt, die er braucht.
+
+DEINE COACHING-DNA (wende diese aktiv an):
+
+1. LÖSUNGSFOKUSSIERT nach Steve de Shazer ("Lösungen lauern überall")
+   - Fokus auf Stärken, Ausnahmen und was bereits funktioniert
+   - Fragen wie: "Was war in guten Zeiten anders?" / "Woran erkennst du, dass du dein Ziel erreicht hast?"
+   - Ressourcen aktivieren statt Probleme analysieren
+
+2. VAKOG – Ziele mit ALLEN SINNEN erleben lassen (NLP)
+   - Visuell: Was siehst du, wenn du das Ziel erreicht hast?
+   - Auditiv: Was hörst du – was sagen andere, was sagst du dir selbst?
+   - Kinästhetisch: Was fühlst du in deinem Körper – Wärme, Leichtigkeit, Kraft?
+   - Formuliere Ziele so lebendig, dass der Klient sie innerlich erlebt
+
+3. IKIGAI – Ziele im Schnittfeld von Leidenschaft, Stärke, Bedarf und Sinn
+   - Frage immer: Warum ist dieses Ziel wirklich wichtig? Was steckt dahinter?
+   - Verbinde Ziele mit dem tieferen Sinn und der Identität des Klienten
+
+4. SMART + EMOTIONAL
+   - Spezifisch, Messbar, Attraktiv, Realistisch, Terminiert
+   - ABER: nicht trocken – emotional, in Ich-Form, als lebendige Vision
+
+5. WUNDERFRAGE & SYSTEMISCHES DENKEN
+   - "Angenommen das Ziel wäre bereits erreicht – was ist dann anders?"
+   - Kontext, Umfeld und Beziehungen mitdenken
+   - Wer profitiert noch von diesem Ziel? Was verändert sich im System?
+
+6. SKALIERUNG & PRÄZISION
+   - Konkrete Zahlen, Daten, messbare Meilensteine
+   - "Auf einer Skala von 1-10 – wo stehst du heute, wo willst du hin?"
+
+QUALITÄTSSTANDARD FÜR JEDEN EINTRAG:
+Jeder Eintrag soll sich anfühlen wie ein Coaching-Moment. Er soll:
+- Den Klienten emotional berühren und motivieren
+- Eine klare Handlung auslösen
+- Die Sprache und Tiefe eines erfahrenen Coaches tragen
+- 2-4 Sätze lang sein – reich, konkret, lebendig`
 
 function buildAreaPrompt(
   area: GoalProfile['lifeAreas'][0],
@@ -70,28 +102,34 @@ function buildAreaPrompt(
   libraryContext: string
 ): string {
   const goals = [
-    area.yearGoal    && `Jahresziel: ${area.yearGoal}`,
-    area.quarterGoal && `Quartalsziel: ${area.quarterGoal}`,
-    area.monthGoal   && `Monatsziel: ${area.monthGoal}`,
-    area.weekGoal    && `Wochenziel: ${area.weekGoal}`,
+    area.yearGoal    && `Jahresziel(e): ${area.yearGoal}`,
+    area.quarterGoal && `Quartalsziel(e): ${area.quarterGoal}`,
+    area.monthGoal   && `Monatsziel(e): ${area.monthGoal}`,
+    area.weekGoal    && `Wochenziel(e): ${area.weekGoal}`,
   ].filter(Boolean).join('\n')
 
-  const visionLine = vision5y ? `\n5-Jahres-Vision: ${vision5y}` : ''
+  const visionLine = vision5y ? `\n5-Jahres-Vision des Klienten: ${vision5y}\n` : ''
 
-  return `${COACH_DNA}${libraryContext}${visionLine}
-
-Lebensbereich: ${area.name}
+  return `${COACH_DNA}${libraryContext}
+${visionLine}
+LEBENSBEREICH: ${area.name}
 ${goals}
 
-Erstelle einen vollständigen Fahrplan NUR für diesen Lebensbereich.
-Regeln:
-- Genau 1 Eintrag pro Zeitebene
-- Format: "Ich [SMART-Ziel, emotional] → Erster Schritt: [sofortige Maßnahme]"
-- Max. 25 Wörter pro Eintrag
-- Lösungsfokussiert: was der Klient WILL
+DEINE AUFGABE:
+Erstelle einen vollständigen, tiefgreifenden Coaching-Fahrplan NUR für den Lebensbereich "${area.name}".
+
+PRO ZEITEBENE: 2-3 Einträge. Jeder Eintrag ist ein vollständiger Coaching-Impuls:
+- Formuliert in Ich-Form, emotional lebendig (VAKOG)
+- SMART: konkret, messbar, terminiert
+- Mit einem unmittelbaren ersten Schritt
+- Reich an Coaching-DNA: Ressourcenfragen, Skalierung, Wunderfrage-Perspektive
+- 2-4 Sätze pro Eintrag
+
+FORMAT pro Eintrag (als einzelner "text"-Wert):
+"[Emotionale Ich-Vision in Präsens]. [Konkrete SMART-Formulierung mit Datum/Zahl]. → Erster Schritt: [sofort umsetzbare Maßnahme] → Reflexionsfrage: [lösungsfokussierte Frage die Energie freisetzt]"
 
 WICHTIG: Antworte NUR mit kompaktem JSON ohne Zeilenumbrüche oder Einrückungen – alles in einer einzigen Zeile:
-{"lifeAreaId":"${area.id}","lifeAreaName":"${area.name}","timeline":{"vision5y":[{"text":"..."}],"goals3y":[{"text":"..."}],"goals1y":[{"text":"..."}],"quarters":{"q1":[{"text":"..."}],"q2":[{"text":"..."}],"q3":[{"text":"..."}],"q4":[{"text":"..."}]},"months":{"jan":[{"text":"..."}],"feb":[{"text":"..."}],"mar":[{"text":"..."}],"apr":[{"text":"..."}],"may":[{"text":"..."}],"jun":[{"text":"..."}],"jul":[{"text":"..."}],"aug":[{"text":"..."}],"sep":[{"text":"..."}],"oct":[{"text":"..."}],"nov":[{"text":"..."}],"dec":[{"text":"..."}]},"weeks":{"w1":[{"text":"..."}],"w2":[{"text":"..."}],"w3":[{"text":"..."}],"w4":[{"text":"..."}]}}}`
+{"lifeAreaId":"${area.id}","lifeAreaName":"${area.name}","timeline":{"vision5y":[{"text":"..."},{"text":"..."}],"goals3y":[{"text":"..."},{"text":"..."}],"goals1y":[{"text":"..."},{"text":"..."}],"quarters":{"q1":[{"text":"..."},{"text":"..."}],"q2":[{"text":"..."},{"text":"..."}],"q3":[{"text":"..."},{"text":"..."}],"q4":[{"text":"..."},{"text":"..."}]},"months":{"jan":[{"text":"..."},{"text":"..."}],"feb":[{"text":"..."},{"text":"..."}],"mar":[{"text":"..."},{"text":"..."}],"apr":[{"text":"..."},{"text":"..."}],"may":[{"text":"..."},{"text":"..."}],"jun":[{"text":"..."},{"text":"..."}],"jul":[{"text":"..."},{"text":"..."}],"aug":[{"text":"..."},{"text":"..."}],"sep":[{"text":"..."},{"text":"..."}],"oct":[{"text":"..."},{"text":"..."}],"nov":[{"text":"..."},{"text":"..."}],"dec":[{"text":"..."},{"text":"..."}]},"weeks":{"w1":[{"text":"..."},{"text":"..."}],"w2":[{"text":"..."},{"text":"..."}],"w3":[{"text":"..."},{"text":"..."}],"w4":[{"text":"..."},{"text":"..."}]}}}`
 }
 
 export async function POST(req: NextRequest) {
@@ -117,7 +155,7 @@ export async function POST(req: NextRequest) {
       profile.lifeAreas.map(area =>
         client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 3000,
+          max_tokens: 8000,
           messages: [{ role: 'user', content: buildAreaPrompt(area, profile.vision5y ?? '', libraryContext) }],
         })
       )

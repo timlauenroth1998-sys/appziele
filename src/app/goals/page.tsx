@@ -13,11 +13,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
 import { LifeAreaGoal, GoalProfile, LIFE_AREA_COLOR_MAP, CUSTOM_AREA_COLORS, LIFE_AREA_DEFAULTS } from '@/lib/types'
 
-const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 'monthGoal' | 'weekGoal'>; label: string; required: boolean }[] = [
-  { key: 'yearGoal',    label: 'Jahresziel',   required: true },
-  { key: 'quarterGoal', label: 'Quartalsziel', required: false },
-  { key: 'monthGoal',   label: 'Monatsziel',   required: false },
-  { key: 'weekGoal',    label: 'Wochenziel',   required: false },
+const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 'monthGoal' | 'weekGoal'>; label: string; required: boolean; placeholder: string }[] = [
+  { key: 'yearGoal',    label: 'Jahresziele',   required: true,  placeholder: 'Was willst du dieses Jahr erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
+  { key: 'quarterGoal', label: 'Quartalsziele', required: false, placeholder: 'Was willst du im nächsten Quartal erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
+  { key: 'monthGoal',   label: 'Monatsziele',   required: false, placeholder: 'Was willst du diesen Monat erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
+  { key: 'weekGoal',    label: 'Wochenziele',   required: false, placeholder: 'Was willst du diese Woche erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
 ]
 
 export default function GoalsPage() {
@@ -223,7 +223,7 @@ export default function GoalsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 space-y-4">
-                    {GOAL_FIELDS.map(({ key, label, required }) => (
+                    {GOAL_FIELDS.map(({ key, label, required, placeholder }) => (
                       <div key={key} className="space-y-1.5">
                         <Label className="text-sm font-medium text-gray-700">
                           {label}
@@ -235,8 +235,8 @@ export default function GoalsPage() {
                         <Textarea
                           value={area[key]}
                           onChange={(e) => updateArea(area.id, key, e.target.value)}
-                          placeholder={`${label} eingeben...`}
-                          className="resize-none min-h-[72px]"
+                          placeholder={placeholder}
+                          className="min-h-[100px]"
                         />
                       </div>
                     ))}

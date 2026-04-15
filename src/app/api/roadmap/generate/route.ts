@@ -53,7 +53,12 @@ async function fetchLibraryContext(profile: GoalProfile): Promise<string> {
 }
 
 function profileHash(profile: GoalProfile): string {
-  return btoa(JSON.stringify(profile.lifeAreas)).slice(0, 16)
+  const str = JSON.stringify(profile.lifeAreas)
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0
+  }
+  return (hash >>> 0).toString(36)
 }
 
 const COACH_DNA = `Du bist ein erfahrener Executive Life-Coach. Deine Coaching-DNA:

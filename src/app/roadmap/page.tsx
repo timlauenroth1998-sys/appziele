@@ -16,7 +16,12 @@ import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/li
 type Status = 'idle' | 'generating' | 'done' | 'error'
 
 function profileHash(profile: { lifeAreas: unknown[] }): string {
-  try { return btoa(JSON.stringify(profile.lifeAreas)).slice(0, 16) } catch { return '' }
+  const str = JSON.stringify(profile.lifeAreas)
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0
+  }
+  return (hash >>> 0).toString(36)
 }
 
 function getAllItems(roadmap: Roadmap) {

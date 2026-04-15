@@ -1,6 +1,6 @@
 # PROJ-3: Roadmap-Dashboard & Fortschrittsanzeige
 
-## Status: Planned
+## Status: In Review
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-03
 

@@ -12,6 +12,7 @@ import { useCompletions } from '@/hooks/useCompletions'
 import { TimelineAccordion } from '@/components/roadmap/TimelineAccordion'
 import { WeekFocusView } from '@/components/roadmap/WeekFocusView'
 import { YearPlanView } from '@/components/roadmap/YearPlanView'
+import { CalendarExportDialog } from '@/components/roadmap/CalendarExportDialog'
 import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
 type Status = 'idle' | 'generating' | 'done' | 'error'
@@ -57,6 +58,7 @@ export default function RoadmapPage() {
   const [progressMsg, setProgressMsg] = useState(GENERATING_MESSAGES[0])
   const [localRoadmap, setLocalRoadmap] = useState<Roadmap | null>(null)
   const [activeArea, setActiveArea] = useState<string>('__week__')
+  const [exportOpen, setExportOpen] = useState(false)
 
   useEffect(() => {
     if (roadmapLoaded && roadmap) setLocalRoadmap(roadmap)
@@ -195,6 +197,11 @@ export default function RoadmapPage() {
             <span className="text-xs text-gray-400 hidden sm:block">
               {totalProgress}% abgeschlossen
             </span>
+          )}
+          {localRoadmap && (
+            <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
+              📅 Kalender
+            </Button>
           )}
           <Button variant="outline" size="sm" onClick={generate} disabled={status === 'generating'}>
             {status === 'generating' ? '⟳ Wird generiert...' : '↺ Neu generieren'}
@@ -339,6 +346,15 @@ export default function RoadmapPage() {
           </Tabs>
         )}
       </main>
+
+      {localRoadmap && (
+        <CalendarExportDialog
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          roadmap={localRoadmap}
+          areaColors={areaColors}
+        />
+      )}
     </div>
   )
 }

@@ -1,8 +1,8 @@
 # PROJ-4: Kalender-Export (iCal / .ics)
 
-## Status: Planned
+## Status: In Progress
 **Created:** 2026-04-03
-**Last Updated:** 2026-04-03
+**Last Updated:** 2026-04-15
 
 ## Dependencies
 - Requires: PROJ-2 (KI-Roadmap) – Roadmap muss generiert worden sein, um Termine zu exportieren

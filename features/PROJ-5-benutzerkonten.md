@@ -1,6 +1,6 @@
 # PROJ-5: Benutzerkonten & optionaler Login
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -50,7 +50,77 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+**Date:** 2026-04-16
+
+### Komponentenstruktur
+
+```
+/auth (neue Seite)
++-- AuthPage
+    +-- Tabs: "Anmelden" | "Registrieren"
+    +-- LoginForm (E-Mail + Passwort + "Passwort vergessen?"-Link)
+    +-- RegisterForm (E-Mail + Passwort mit Inline-Validierung)
+    +-- ForgotPasswordForm (E-Mail → Reset-Link senden)
+
+Nav-Bar (bestehend — /goals, /roadmap)
++-- [nicht eingeloggt] "Anmelden"-Button → /auth
++-- [eingeloggt]       UserAvatar (Initial)
+                       +-- DropdownMenu: E-Mail + "Abmelden"
+```
+
+### Datenhaltung
+
+```
+Nicht eingeloggt (wie bisher): localStorage
+Eingeloggt: Supabase-Tabellen
+
+  goal_profiles:  user_id (UUID) | data (JSON: GoalProfile) | updated_at
+  roadmaps:       user_id (UUID) | data (JSON: Roadmap)     | updated_at
+  completions:    user_id (UUID) | item_ids (JSON-Array)    | updated_at
+
+Datenmigration: einmalig still nach erstem Login
+  localStorage → Supabase (kein Dialog, kein Interrupt)
+```
+
+### Neue Hooks
+
+```
+useAuth          → Supabase-Session global beobachten, User-State bereitstellen
+useMigration     → Einmalig lokale Daten nach Login in Supabase übertragen
+
+Bestehende Hooks (useGoalStorage, useRoadmapStorage, useCompletions):
+  → Werden erweitert: eingeloggt → Supabase | nicht eingeloggt → localStorage
+```
+
+### Auth-Flow
+
+```
+1. "Anmelden"-Button in Nav → /auth
+2. Login/Register mit E-Mail + Passwort (Supabase Auth)
+3. Bei Erfolg: silent Migration lokaler Daten → Supabase
+4. Redirect zurück zu /goals oder /roadmap
+5. Nav zeigt UserAvatar statt "Anmelden"-Button
+6. Session: 30 Tage (Supabase Refresh Token)
+```
+
+### Sicherheit
+
+```
+Row Level Security auf allen Tabellen:
+  - Lesen/Schreiben/Löschen: nur eigene Zeilen (user_id = auth.uid())
+```
+
+### Tech-Entscheidungen
+
+| Entscheidung | Warum |
+|---|---|
+| Supabase Auth | Bereits im Stack, kostenfrei, E-Mail+Passwort out-of-the-box |
+| JSON-Spalten (nicht normalisiert) | GoalProfile/Roadmap sind komplexe Objekte — JSON flexibel, kein Schema-Migration-Risiko |
+| Bestehende Hooks erweitern | Minimale Änderungen an Pages — nur Storage-Schicht tauscht aus |
+| Kein Redirect-Gate | Login bleibt freiwillig, kein Nutzer wird ausgesperrt |
+
+### Neue Packages
+Keine — `@supabase/supabase-js` ist bereits installiert. `src/lib/supabase.ts` muss nur aktiviert werden.
 
 ## QA Test Results
 _To be added by /qa_

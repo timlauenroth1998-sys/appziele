@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { GoalProfile } from '@/lib/types'
+import { supabase } from '@/lib/supabase'
 
 const STORAGE_KEY = 'ziele_goal_profile'
 
@@ -10,25 +11,61 @@ export function useGoalStorage() {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        setProfile(JSON.parse(raw))
+    let cancelled = false
+
+    async function load() {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session?.user) {
+        // Logged in: load from Supabase
+        const { data } = await supabase
+          .from('goal_profiles')
+          .select('data')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+        if (!cancelled) {
+          setProfile((data?.data as GoalProfile) ?? null)
+          setIsLoaded(true)
+        }
+      } else {
+        // Not logged in: load from localStorage
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY)
+          if (raw && !cancelled) setProfile(JSON.parse(raw) as GoalProfile)
+        } catch {
+          // ignore parse errors
+        }
+        if (!cancelled) setIsLoaded(true)
       }
-    } catch {
-      // ignore parse errors
     }
-    setIsLoaded(true)
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
-  const saveProfile = useCallback((data: GoalProfile) => {
+  const saveProfile = useCallback(async (data: GoalProfile) => {
     const updated = { ...data, updatedAt: new Date().toISOString() }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (session?.user) {
+      await supabase.from('goal_profiles').upsert(
+        { user_id: session.user.id, data: updated, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    }
     setProfile(updated)
   }, [])
 
-  const clearProfile = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+  const clearProfile = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (session?.user) {
+      await supabase.from('goal_profiles').delete().eq('user_id', session.user.id)
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
     setProfile(null)
   }, [])
 

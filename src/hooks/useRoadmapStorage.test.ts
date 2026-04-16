@@ -1,7 +1,15 @@
 import { renderHook, act } from '@testing-library/react'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useRoadmapStorage } from './useRoadmapStorage'
 import { Roadmap } from '@/lib/types'
+
+// Mock Supabase — tests run in localStorage mode (no session)
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
+    from: vi.fn(),
+  },
+}))
 
 const STORAGE_KEY = 'ziele_roadmap'
 
@@ -67,7 +75,7 @@ describe('useRoadmapStorage', () => {
     const { result } = renderHook(() => useRoadmapStorage())
     await act(async () => {})
 
-    act(() => { result.current.saveRoadmap(mockRoadmap) })
+    await act(async () => { await result.current.saveRoadmap(mockRoadmap) })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(stored.profileHash).toBe('abc123')
@@ -78,7 +86,7 @@ describe('useRoadmapStorage', () => {
     const { result } = renderHook(() => useRoadmapStorage())
     await act(async () => {})
 
-    act(() => { result.current.saveRoadmap(mockRoadmap) })
+    await act(async () => { await result.current.saveRoadmap(mockRoadmap) })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(stored.lifeAreaRoadmaps[0].timeline.vision5y[0].text).toBe('Führungsposition')
@@ -94,7 +102,7 @@ describe('useRoadmapStorage', () => {
 
     expect(result.current.roadmap).not.toBeNull()
 
-    act(() => { result.current.clearRoadmap() })
+    await act(async () => { await result.current.clearRoadmap() })
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
     expect(result.current.roadmap).toBeNull()
@@ -106,7 +114,7 @@ describe('useRoadmapStorage', () => {
     await act(async () => {})
 
     const updated = { ...mockRoadmap, profileHash: 'newHash999' }
-    act(() => { result.current.saveRoadmap(updated) })
+    await act(async () => { await result.current.saveRoadmap(updated) })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(stored.profileHash).toBe('newHash999')
@@ -126,7 +134,7 @@ describe('useRoadmapStorage', () => {
     const { result } = renderHook(() => useRoadmapStorage())
     await act(async () => {})
 
-    act(() => { result.current.saveRoadmap(withEdit) })
+    await act(async () => { await result.current.saveRoadmap(withEdit) })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(stored.lifeAreaRoadmaps[0].timeline.vision5y[0].isEdited).toBe(true)

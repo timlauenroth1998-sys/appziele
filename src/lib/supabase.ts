@@ -1,14 +1,33 @@
-// Supabase Client Setup
-// Uncomment this file when you're ready to use Supabase
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-/*
-import { createClient } from '@supabase/supabase-js'
+let _client: SupabaseClient | null = null
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+function getClient(): SupabaseClient {
+  if (_client) return _client
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-*/
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// For now, export a placeholder to avoid import errors
-export const supabase = null;
+  if (!url || !key) {
+    throw new Error(
+      'Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+    )
+  }
+
+  _client = createClient(url, key, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'ziele_auth_session',
+    },
+  })
+
+  return _client
+}
+
+// Proxy object: looks like a SupabaseClient but initializes lazily
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return getClient()[prop as keyof SupabaseClient]
+  },
+})

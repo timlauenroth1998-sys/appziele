@@ -2,6 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useCompletions } from './useCompletions'
 
+// Mock Supabase — tests run in localStorage mode (no session)
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
+    from: vi.fn(),
+  },
+}))
+
 // ─────────────────────────────────────────────────────────────────────────────
 // localStorage mock
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +74,7 @@ describe('useCompletions', () => {
   it('toggle persists to localStorage', async () => {
     const { result } = renderHook(() => useCompletions())
     await act(async () => {})
-    act(() => { result.current.toggle('item_x') })
+    await act(async () => { result.current.toggle('item_x') })
     const stored = JSON.parse(storage['ziele_completions'] ?? '[]') as string[]
     expect(stored).toContain('item_x')
   })
@@ -75,7 +83,7 @@ describe('useCompletions', () => {
     storage['ziele_completions'] = JSON.stringify(['item_x'])
     const { result } = renderHook(() => useCompletions())
     await act(async () => {})
-    act(() => { result.current.toggle('item_x') })
+    await act(async () => { result.current.toggle('item_x') })
     const stored = JSON.parse(storage['ziele_completions'] ?? '[]') as string[]
     expect(stored).not.toContain('item_x')
   })

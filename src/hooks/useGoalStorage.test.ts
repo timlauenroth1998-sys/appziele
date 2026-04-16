@@ -3,6 +3,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useGoalStorage } from './useGoalStorage'
 import { GoalProfile } from '@/lib/types'
 
+// Mock Supabase — tests run in localStorage mode (no session)
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
+    from: vi.fn(),
+  },
+}))
+
 const STORAGE_KEY = 'ziele_goal_profile'
 
 const mockProfile: GoalProfile = {
@@ -62,8 +70,8 @@ describe('useGoalStorage', () => {
     const { result } = renderHook(() => useGoalStorage())
     await act(async () => {})
 
-    act(() => {
-      result.current.saveProfile(mockProfile)
+    await act(async () => {
+      await result.current.saveProfile(mockProfile)
     })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
@@ -76,8 +84,8 @@ describe('useGoalStorage', () => {
     const { result } = renderHook(() => useGoalStorage())
     await act(async () => {})
 
-    act(() => {
-      result.current.saveProfile(mockProfile)
+    await act(async () => {
+      await result.current.saveProfile(mockProfile)
     })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
@@ -91,8 +99,8 @@ describe('useGoalStorage', () => {
 
     expect(result.current.profile).not.toBeNull()
 
-    act(() => {
-      result.current.clearProfile()
+    await act(async () => {
+      await result.current.clearProfile()
     })
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
@@ -103,8 +111,8 @@ describe('useGoalStorage', () => {
     const { result } = renderHook(() => useGoalStorage())
     await act(async () => {})
 
-    act(() => result.current.saveProfile(mockProfile))
-    act(() => result.current.clearProfile())
+    await act(async () => { await result.current.saveProfile(mockProfile) })
+    await act(async () => { await result.current.clearProfile() })
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
@@ -115,7 +123,7 @@ describe('useGoalStorage', () => {
     await act(async () => {})
 
     const updated = { ...mockProfile, vision5y: 'Neue Vision' }
-    act(() => result.current.saveProfile(updated))
+    await act(async () => { await result.current.saveProfile(updated) })
 
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!)
     expect(stored.vision5y).toBe('Neue Vision')

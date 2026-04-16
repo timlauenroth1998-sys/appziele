@@ -1,6 +1,6 @@
 # PROJ-4: Kalender-Export (iCal / .ics)
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -81,4 +81,7 @@ _To be added by /architecture_
 ### Production-Ready: YES
 
 ## Deployment
-_To be added by /deploy_
+**Date:** 2026-04-16
+**Production URL:** https://appziele-r2zlz6riv-timlauenroth1998-9851s-projects.vercel.app
+**Build:** ✅ `npm run build` passed locally (0 errors)
+**Tests:** ✅ 32/32 unit tests passing

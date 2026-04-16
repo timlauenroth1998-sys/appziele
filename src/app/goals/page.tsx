@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
 import { LifeAreaGoal, GoalProfile, LIFE_AREA_COLOR_MAP, CUSTOM_AREA_COLORS, LIFE_AREA_DEFAULTS } from '@/lib/types'
+import { UserAuthButton } from '@/components/UserAuthButton'
 
 const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 'monthGoal' | 'weekGoal'>; label: string; required: boolean; placeholder: string }[] = [
   { key: 'yearGoal',    label: 'Jahresziele',   required: true,  placeholder: 'Was willst du dieses Jahr erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
@@ -102,7 +103,7 @@ export default function GoalsPage() {
       {/* Nav */}
       <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-3xl mx-auto">
         <span className="font-semibold text-gray-900">Ziele App</span>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -113,6 +114,7 @@ export default function GoalsPage() {
           <Button size="sm" onClick={() => router.push('/roadmap')}>
             Roadmap generieren →
           </Button>
+          <UserAuthButton />
         </div>
       </nav>
 

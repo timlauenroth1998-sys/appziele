@@ -1,6 +1,6 @@
 # PROJ-5: Benutzerkonten & optionaler Login
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 

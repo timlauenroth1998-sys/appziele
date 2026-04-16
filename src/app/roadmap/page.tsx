@@ -13,6 +13,7 @@ import { TimelineAccordion } from '@/components/roadmap/TimelineAccordion'
 import { WeekFocusView } from '@/components/roadmap/WeekFocusView'
 import { YearPlanView } from '@/components/roadmap/YearPlanView'
 import { CalendarExportDialog } from '@/components/roadmap/CalendarExportDialog'
+import { UserAuthButton } from '@/components/UserAuthButton'
 import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
 type Status = 'idle' | 'generating' | 'done' | 'error'
@@ -206,6 +207,7 @@ export default function RoadmapPage() {
           <Button variant="outline" size="sm" onClick={generate} disabled={status === 'generating'}>
             {status === 'generating' ? '⟳ Wird generiert...' : '↺ Neu generieren'}
           </Button>
+          <UserAuthButton />
         </div>
       </nav>
 

@@ -76,3 +76,35 @@ export interface Roadmap {
 }
 
 export type GenerationStatus = 'idle' | 'generating' | 'done' | 'error'
+
+// ─── Coach / Client relationship types (PROJ-6) ──────────────────────────────
+
+export type CoachRelationStatus = 'pending' | 'active' | 'declined'
+
+export interface CoachClient {
+  coachId: string
+  clientId: string
+  clientEmail: string | null
+  status: CoachRelationStatus
+  invitedEmail: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PendingInvite {
+  coachId: string
+  clientId: string
+  coachEmail: string | null
+  invitedEmail: string | null
+  status: CoachRelationStatus
+  createdAt: string
+}
+
+export interface RoadmapComment {
+  id: string
+  coachId: string
+  clientId: string
+  itemId: string
+  comment: string
+  createdAt: string
+}

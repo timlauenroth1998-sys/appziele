@@ -59,7 +59,90 @@
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+**Date:** 2026-04-16
+
+### Komponentenstruktur
+
+```
+/coach (neue Seite — nur für Coach-Nutzer)
++-- CoachDashboard
+    +-- Klienten-Liste (Name, Status, letzte Aktivität)
+    +-- InviteClientDialog (E-Mail-Eingabe + Senden)
+
+/coach/[clientId] (Read-Only-Roadmap eines Klienten)
++-- Nav (← Zurück, Name des Klienten)
++-- ReadOnlyRoadmap (bestehende Komponenten mit readOnly-Prop)
+    +-- TimelineAccordion (read-only)
+    +-- WeekFocusView (read-only)
+    +-- YearPlanView (read-only)
+    +-- CommentButton an jedem Item → CommentDialog
+
+/goals (bestehend — erweitert)
++-- Nav: "Meine Klienten"-Link für Coach-Nutzer
++-- PendingInviteBanner (wenn ausstehende Einladung)
+
+/settings (neue Seite)
++-- AreaPermissionsPanel
+    +-- Toggle pro Lebensbereich (Coach darf sehen: Ja/Nein)
+
+/admin (bestehend — erweitert)
++-- CoachRolePanel (Nutzer suchen → Coach-Rolle zuweisen/entziehen)
+```
+
+### Datenhaltung
+
+```
+Neue Supabase-Tabellen:
+
+coach_client_relations
+  coach_id, client_id, status (pending|active|declined),
+  invited_email (für noch nicht registrierte Klienten), created_at, updated_at
+
+area_permissions
+  coach_id, client_id, life_area_id, is_visible (Default: true)
+  Unique: (coach_id, client_id, life_area_id)
+
+roadmap_comments
+  id (UUID), coach_id, client_id, item_id, comment (max 500 Zeichen), created_at
+
+RLS:
+  Coach liest Roadmap/Profil eines Klienten nur wenn: active-Verbindung + area_permission.is_visible = true
+  Klient verwaltet eigene area_permissions
+  Coach schreibt/liest eigene Kommentare; Klient liest Kommentare an sich
+```
+
+### Neue API-Routen
+
+```
+POST /api/coach/invite       → Einladungs-E-Mail + coach_client_relations (pending)
+POST /api/coach/respond      → Einladung akzeptieren (active) oder ablehnen (declined)
+POST /api/coach/notify       → E-Mail an Coach bei Roadmap-Update (aufgerufen von saveRoadmap)
+DELETE /api/coach/disconnect → Verbindung trennen (beide Seiten)
+```
+
+### Neue Hooks
+
+```
+useCoachRole        → prüft ob Nutzer Coach ist (user_metadata.role === 'coach')
+useCoachClients     → Liste der Klienten aus coach_client_relations
+useClientRoadmap    → Roadmap + Profil eines Klienten lesen (Coach-only)
+useCoachComments    → Kommentare zu einem item_id lesen/schreiben
+useAreaPermissions  → area_permissions lesen/schreiben (Klient-seitig)
+usePendingInvites   → ausstehende Einladungen für eingeloggten Nutzer
+```
+
+### Tech-Entscheidungen
+
+| Entscheidung | Warum |
+|---|---|
+| readOnly-Prop auf Roadmap-Komponenten | Bestehende Komponenten wiederverwenden, kein doppelter Code |
+| CommentButton in RoadmapItemCard | Optionaler Slot — nur im Coach-Kontext aktiv |
+| Coach-Rolle via user_metadata | Kein extra users-Table; Supabase Auth unterstützt beliebige Metadaten |
+| E-Mail via Resend | Mehr Template-Kontrolle als Supabase Auth-Mails |
+| Notify-API serverseitig | Service-Role-Key darf nicht im Browser sein |
+
+### Neue Packages
+- `resend` — E-Mail-Versand (Einladung + Benachrichtigung bei Roadmap-Update)
 
 ## QA Test Results
 _To be added by /qa_

@@ -31,11 +31,10 @@ export function useMigration() {
           .maybeSingle()
 
         if (!existing) {
-          await supabase.from('goal_profiles').insert({
-            user_id: userId,
-            data: JSON.parse(localProfile),
-            updated_at: now,
-          })
+          await supabase.from('goal_profiles').upsert(
+            { user_id: userId, data: JSON.parse(localProfile), updated_at: now },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          )
         }
       }
 
@@ -49,11 +48,10 @@ export function useMigration() {
           .maybeSingle()
 
         if (!existing) {
-          await supabase.from('roadmaps').insert({
-            user_id: userId,
-            data: JSON.parse(localRoadmap),
-            updated_at: now,
-          })
+          await supabase.from('roadmaps').upsert(
+            { user_id: userId, data: JSON.parse(localRoadmap), updated_at: now },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          )
         }
       }
 
@@ -67,18 +65,17 @@ export function useMigration() {
           .maybeSingle()
 
         if (!existing) {
-          await supabase.from('completions').insert({
-            user_id: userId,
-            item_ids: JSON.parse(localCompletions),
-            updated_at: now,
-          })
+          await supabase.from('completions').upsert(
+            { user_id: userId, item_ids: JSON.parse(localCompletions), updated_at: now },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          )
         }
       }
 
       // Mark as migrated so we don't run again
       localStorage.setItem(`${MIGRATION_KEY}_${userId}`, '1')
-    } catch {
-      // Silent failure — migration is best-effort, not critical
+    } catch (err) {
+      console.error('[useMigration] Migration failed:', err)
     }
   }, [])
 

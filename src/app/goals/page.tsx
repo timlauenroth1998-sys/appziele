@@ -39,10 +39,16 @@ export default function GoalsPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-center px-6">
-        <div>
-          <p className="text-gray-500 mb-4">Noch keine Ziele eingegeben.</p>
-          <Button onClick={() => router.push('/onboarding')}>Jetzt starten →</Button>
+      <div className="min-h-screen bg-white">
+        <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-3xl mx-auto">
+          <span className="font-semibold text-gray-900">Ziele App</span>
+          <UserAuthButton />
+        </nav>
+        <div className="flex items-center justify-center text-center px-6 mt-32">
+          <div>
+            <p className="text-gray-500 mb-4">Noch keine Ziele eingegeben.</p>
+            <Button onClick={() => router.push('/onboarding')}>Jetzt starten →</Button>
+          </div>
         </div>
       </div>
     )

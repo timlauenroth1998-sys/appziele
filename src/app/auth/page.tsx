@@ -37,7 +37,8 @@ function mapAuthError(message: string): string {
 
 function AuthPageInner() {
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('from') ?? '/goals'
+  const from = searchParams.get('from') ?? ''
+  const redirectTo = /^\/(?!\/)/.test(from) ? from : '/goals'
   const { migrate } = useMigration()
 
   const [tab, setTab] = useState<'login' | 'register'>('login')

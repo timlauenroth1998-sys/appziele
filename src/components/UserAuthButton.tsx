@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +19,7 @@ export function UserAuthButton() {
   const router = useRouter()
   const { user, isLoaded } = useAuth()
 
-  if (!isLoaded) return null
+  if (!isLoaded) return <Skeleton className="h-8 w-8 rounded-full" />
 
   if (!user) {
     return (

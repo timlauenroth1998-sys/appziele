@@ -173,10 +173,18 @@ export default function RoadmapPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-center px-6">
-        <div>
-          <p className="text-gray-500 mb-4">Bitte gib zuerst deine Ziele ein.</p>
-          <Button onClick={() => router.push('/onboarding')}>Zu den Zielen →</Button>
+      <div className="min-h-screen bg-white">
+        <nav className="border-b border-gray-100 bg-white px-6 py-4 flex items-center justify-between max-w-4xl mx-auto">
+          <button type="button" onClick={() => router.push('/goals')} className="text-sm text-gray-400 hover:text-gray-700">
+            ← Meine Ziele
+          </button>
+          <UserAuthButton />
+        </nav>
+        <div className="flex items-center justify-center text-center px-6 mt-32">
+          <div>
+            <p className="text-gray-500 mb-4">Bitte gib zuerst deine Ziele ein.</p>
+            <Button onClick={() => router.push('/onboarding')}>Zu den Zielen →</Button>
+          </div>
         </div>
       </div>
     )

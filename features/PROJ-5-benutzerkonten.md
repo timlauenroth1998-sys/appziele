@@ -1,6 +1,6 @@
 # PROJ-5: Benutzerkonten & optionaler Login
 
-## Status: In Review
+## Status: Deployed
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -287,4 +287,7 @@ Status: **Needs Fixes** — Zurück zu `/backend` oder `/frontend` für BUG-P5-0
 - Playwright-HTML-Report: `playwright-report/index.html`
 
 ## Deployment
-_To be added by /deploy_
+**Deployed:** 2026-04-16
+**Tag:** v1.5.0-PROJ-5
+**Platform:** Vercel (auto-deploy from main branch)
+**Bugs fixed before deploy:** BUG-P5-001 (HIGH), BUG-P5-002–004 (MEDIUM), BUG-P5-006–007 (LOW)

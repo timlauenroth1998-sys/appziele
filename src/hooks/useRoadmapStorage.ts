@@ -23,7 +23,22 @@ export function useRoadmapStorage() {
           .eq('user_id', session.user.id)
           .maybeSingle()
         if (!cancelled) {
-          setRoadmap((data?.data as Roadmap) ?? null)
+          if (data?.data) {
+            setRoadmap(data.data as Roadmap)
+          } else {
+            // Supabase empty — fall back to localStorage and migrate lazily
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY)
+              if (raw) {
+                const local = JSON.parse(raw) as Roadmap
+                setRoadmap(local)
+                supabase.from('roadmaps').upsert(
+                  { user_id: session.user.id, data: local, updated_at: new Date().toISOString() },
+                  { onConflict: 'user_id' }
+                )
+              }
+            } catch { /* ignore */ }
+          }
           setIsLoaded(true)
         }
       } else {

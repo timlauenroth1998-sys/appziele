@@ -17,14 +17,30 @@ export function useGoalStorage() {
       const { data: { session } } = await supabase.auth.getSession()
 
       if (session?.user) {
-        // Logged in: load from Supabase
+        // Logged in: load from Supabase, fall back to localStorage if empty
         const { data } = await supabase
           .from('goal_profiles')
           .select('data')
           .eq('user_id', session.user.id)
           .maybeSingle()
         if (!cancelled) {
-          setProfile((data?.data as GoalProfile) ?? null)
+          if (data?.data) {
+            setProfile(data.data as GoalProfile)
+          } else {
+            // Supabase empty — try localStorage and migrate lazily
+            try {
+              const raw = localStorage.getItem(STORAGE_KEY)
+              if (raw) {
+                const local = JSON.parse(raw) as GoalProfile
+                setProfile(local)
+                // Silently upload to Supabase so future loads work
+                supabase.from('goal_profiles').upsert(
+                  { user_id: session.user.id, data: local, updated_at: new Date().toISOString() },
+                  { onConflict: 'user_id' }
+                )
+              }
+            } catch { /* ignore */ }
+          }
           setIsLoaded(true)
         }
       } else {

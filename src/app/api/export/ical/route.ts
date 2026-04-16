@@ -19,7 +19,7 @@ function stripFormatting(text: string): string {
 }
 
 function shortTitle(text: string): string {
-  const goal = text.replace(/→.*$/s, '').trim()
+  const goal = text.replace(/→[\s\S]*$/, '').trim()
   return goal.length > 75 ? goal.slice(0, 72) + '…' : goal
 }
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       MONTH_KEYS.forEach(month => {
         const items = tl.months[month]
         if (!items?.length) return
-        const date = new Date(year, MONTH_NUMS[month], 1)
+        const date = new Date(Date.UTC(year, MONTH_NUMS[month], 1))
 
         items.forEach(item => {
           if (totalEvents >= 100) return
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       ;(['q1','q2','q3','q4'] as const).forEach(q => {
         const items = tl.quarters[q]
         if (!items?.length) return
-        const date = new Date(year, QUARTER_START_MONTH[q], 1)
+        const date = new Date(Date.UTC(year, QUARTER_START_MONTH[q], 1))
 
         items.forEach(item => {
           if (totalEvents >= 100) return

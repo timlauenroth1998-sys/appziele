@@ -1,8 +1,8 @@
 # PROJ-4: Kalender-Export (iCal / .ics)
 
-## Status: In Progress
+## Status: In Review
 **Created:** 2026-04-03
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-04-16
 
 ## Dependencies
 - Requires: PROJ-2 (KI-Roadmap) – Roadmap muss generiert worden sein, um Termine zu exportieren
@@ -45,7 +45,40 @@
 _To be added by /architecture_
 
 ## QA Test Results
-_To be added by /qa_
+**Date:** 2026-04-16
+**Tester:** Claude QA Agent
+
+### Acceptance Criteria
+| # | Criterion | Status | Notes |
+|---|-----------|--------|-------|
+| 1 | "Kalender exportieren"-Button sichtbar im Dashboard/Roadmap | ✅ Pass | `📅 Kalender` Button in Nav-Bar, sichtbar wenn Roadmap geladen |
+| 2 | Nutzer kann Zeitebenen und Lebensbereiche wählen | ✅ Pass | Checkboxen für Wochen/Monate/Quartale/Jahresziele + farbige Area-Toggle-Buttons |
+| 3 | Export erzeugt gültige .ics-Datei (RFC 5545) | ✅ Pass | Unit-Test verifiziert `BEGIN:VCALENDAR`, `METHOD:PUBLISH`, `BEGIN:VEVENT` |
+| 4 | Jedes Ziel als Kalendereintrag mit Titel, Beschreibung und Datum | ✅ Pass | `SUMMARY`, `DESCRIPTION`, `DTSTART` vorhanden |
+| 5 | Wochenziele → Montag der jeweiligen Woche (ganztägig) | ✅ Pass | Berechnung via `dayOfWeek + 6) % 7` korrekt |
+| 6 | Monatsziele → 1. des jeweiligen Monats | ✅ Pass | Unit-Test: März → `20260301` ✓ (Bug gefixt: UTC statt Lokalzeit) |
+| 7 | Quartalsziele → 1. des jeweiligen Quartals | ✅ Pass | Unit-Tests: Q1→Jan, Q2→Apr, Q3→Jul, Q4→Okt alle korrekt |
+| 8 | .ics direkt heruntergeladen | ✅ Pass | `Content-Disposition: attachment; filename="ziele-roadmap.ics"` |
+| 9 | Export funktioniert ohne Account | ✅ Pass | Keine Auth-Prüfung in der Route |
+
+### Bugs Found & Fixed
+| ID | Severity | Description | Fix |
+|----|----------|-------------|-----|
+| B1 | High | `new Date(year, month, 1)` verwendete Lokalzeit → Datum um 1 Tag verschoben (z.B. März → Feb 28) | Gefixt mit `Date.UTC(year, month, 1)` |
+| B2 | Medium | `/→.*$/s` Regex-Flag `s` erfordert ES2018, tsconfig target ist ES2017 → TypeScript-Fehler | Gefixt mit `/→[\s\S]*$/` |
+
+### Security Audit
+- Keine Authentifizierung absichtlich weggelassen (spec-konform, kein Account erforderlich)
+- Input wird als `Roadmap`-Typ geparst – keine SQL-Injection oder XSS möglich (reiner iCal-Output, kein HTML)
+- Kein Datenbankzugriff in dieser Route – nur clientseitige Roadmap-Daten werden verarbeitet
+- `Content-Type: text/calendar` verhindert Browser-Rendering als HTML
+
+### Automated Tests
+- **Unit tests:** 15/15 passed (`src/app/api/export/ical/route.test.ts`)
+  - stripFormatting, shortTitle, event cap (100), date assignments (alle Monate + Quartale), RFC 5545 format, Content-Type/Disposition, error handling, area filtering, empty roadmap
+- **Existing tests:** 32/32 passed (keine Regressionen)
+
+### Production-Ready: YES
 
 ## Deployment
 _To be added by /deploy_

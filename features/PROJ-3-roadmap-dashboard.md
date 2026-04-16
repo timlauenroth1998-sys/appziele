@@ -1,6 +1,6 @@
 # PROJ-3: Roadmap-Dashboard & Fortschrittsanzeige
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -77,4 +77,7 @@ Keine Bugs gefunden.
 ### Production-Ready: YES
 
 ## Deployment
-_To be added by /deploy_
+**Date:** 2026-04-16
+**Production URL:** https://appziele-ksm1hgt3p-timlauenroth1998-9851s-projects.vercel.app
+**Build:** ✅ passed
+**Tests:** ✅ 44/44 unit + 46/46 E2E

@@ -14,6 +14,9 @@ import { WeekFocusView } from '@/components/roadmap/WeekFocusView'
 import { YearPlanView } from '@/components/roadmap/YearPlanView'
 import { CalendarExportDialog } from '@/components/roadmap/CalendarExportDialog'
 import { UserAuthButton } from '@/components/UserAuthButton'
+import { PendingInviteBanner } from '@/components/coach/PendingInviteBanner'
+import { useAuth } from '@/hooks/useAuth'
+import { useCoachRole } from '@/hooks/useCoachRole'
 import { Roadmap, LifeAreaRoadmap, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
 type Status = 'idle' | 'generating' | 'done' | 'error'
@@ -52,6 +55,8 @@ export default function RoadmapPage() {
   const { profile, isLoaded: profileLoaded } = useGoalStorage()
   const { roadmap, saveRoadmap, isLoaded: roadmapLoaded } = useRoadmapStorage()
   const { completed, toggle, getProgress, isLoaded: completionsLoaded } = useCompletions()
+  const { user } = useAuth()
+  const { isCoach } = useCoachRole()
 
   const [status, setStatus] = useState<Status>('idle')
   const [error, setError] = useState('')
@@ -178,8 +183,21 @@ export default function RoadmapPage() {
           <button type="button" onClick={() => router.push('/goals')} className="text-sm text-gray-400 hover:text-gray-700">
             ← Meine Ziele
           </button>
-          <UserAuthButton />
+          <div className="flex items-center gap-2">
+            {isCoach && (
+              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
+                Klienten
+              </Button>
+            )}
+            {user && (
+              <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+                Einstellungen
+              </Button>
+            )}
+            <UserAuthButton />
+          </div>
         </nav>
+        {user && <PendingInviteBanner />}
         <div className="flex items-center justify-center text-center px-6 mt-32">
           <div>
             <p className="text-gray-500 mb-4">Bitte gib zuerst deine Ziele ein.</p>
@@ -207,6 +225,16 @@ export default function RoadmapPage() {
               {totalProgress}% abgeschlossen
             </span>
           )}
+          {isCoach && (
+            <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
+              Klienten
+            </Button>
+          )}
+          {user && (
+            <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+              Einstellungen
+            </Button>
+          )}
           {localRoadmap && (
             <Button variant="outline" size="sm" onClick={() => setExportOpen(true)}>
               📅 Kalender
@@ -218,6 +246,8 @@ export default function RoadmapPage() {
           <UserAuthButton />
         </div>
       </nav>
+
+      {user && <PendingInviteBanner />}
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
         <div>

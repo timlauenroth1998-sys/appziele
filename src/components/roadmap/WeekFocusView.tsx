@@ -1,5 +1,6 @@
 'use client'
 
+import { ReactNode } from 'react'
 import { RoadmapItemCard } from './RoadmapItemCard'
 import { LifeAreaRoadmap, LifeAreaColor, RoadmapItem, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 
@@ -9,12 +10,22 @@ interface Props {
   completed: Set<string>
   onToggleComplete: (id: string) => void
   onUpdateItem: (lifeAreaId: string, section: string, subKey: string | null, item: RoadmapItem) => void
+  readOnly?: boolean
+  renderCommentSlot?: (item: RoadmapItem) => ReactNode
 }
 
 const WEEK_LABELS = ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4']
 const WEEK_KEYS = ['w1', 'w2', 'w3', 'w4'] as const
 
-export function WeekFocusView({ lifeAreaRoadmaps, areaColors, completed, onToggleComplete, onUpdateItem }: Props) {
+export function WeekFocusView({
+  lifeAreaRoadmaps,
+  areaColors,
+  completed,
+  onToggleComplete,
+  onUpdateItem,
+  readOnly = false,
+  renderCommentSlot,
+}: Props) {
   // Collect all week items across all life areas
   type ColorMap = typeof LIFE_AREA_COLOR_MAP[LifeAreaColor]
   const allWeekItems: { item: RoadmapItem; weekLabel: string; areaId: string; areaName: string; colorMap: ColorMap }[] = []
@@ -75,8 +86,10 @@ export function WeekFocusView({ lifeAreaRoadmaps, areaColors, completed, onToggl
                   <RoadmapItemCard
                     item={item}
                     completed={completed.has(item.id)}
-                    onToggleComplete={onToggleComplete}
+                    onToggleComplete={readOnly ? undefined : onToggleComplete}
                     onSave={updated => onUpdateItem(areaId, 'weeks', wk, updated)}
+                    readOnly={readOnly}
+                    commentSlot={renderCommentSlot ? renderCommentSlot(item) : undefined}
                   />
                 </div>
               ))}

@@ -11,8 +11,11 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
+import { useAuth } from '@/hooks/useAuth'
+import { useCoachRole } from '@/hooks/useCoachRole'
 import { LifeAreaGoal, GoalProfile, LIFE_AREA_COLOR_MAP, CUSTOM_AREA_COLORS, LIFE_AREA_DEFAULTS } from '@/lib/types'
 import { UserAuthButton } from '@/components/UserAuthButton'
+import { PendingInviteBanner } from '@/components/coach/PendingInviteBanner'
 
 const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 'monthGoal' | 'weekGoal'>; label: string; required: boolean; placeholder: string }[] = [
   { key: 'yearGoal',    label: 'Jahresziele',   required: true,  placeholder: 'Was willst du dieses Jahr erreichen?\nMehrere Ziele? Jedes in eine neue Zeile.' },
@@ -24,6 +27,8 @@ const GOAL_FIELDS: { key: keyof Pick<LifeAreaGoal, 'yearGoal' | 'quarterGoal' | 
 export default function GoalsPage() {
   const router = useRouter()
   const { profile, saveProfile, isLoaded } = useGoalStorage()
+  const { user } = useAuth()
+  const { isCoach } = useCoachRole()
 
   const [customInput, setCustomInput] = useState('')
   const [showAddArea, setShowAddArea] = useState(false)
@@ -42,8 +47,21 @@ export default function GoalsPage() {
       <div className="min-h-screen bg-white">
         <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-3xl mx-auto">
           <span className="font-semibold text-gray-900">Ziele App</span>
-          <UserAuthButton />
+          <div className="flex items-center gap-2">
+            {isCoach && (
+              <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
+                Klienten
+              </Button>
+            )}
+            {user && (
+              <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+                Einstellungen
+              </Button>
+            )}
+            <UserAuthButton />
+          </div>
         </nav>
+        {user && <PendingInviteBanner />}
         <div className="flex items-center justify-center text-center px-6 mt-32">
           <div>
             <p className="text-gray-500 mb-4">Noch keine Ziele eingegeben.</p>
@@ -110,6 +128,16 @@ export default function GoalsPage() {
       <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-3xl mx-auto">
         <span className="font-semibold text-gray-900">Ziele App</span>
         <div className="flex items-center gap-2">
+          {isCoach && (
+            <Button variant="ghost" size="sm" onClick={() => router.push('/coach')}>
+              Klienten
+            </Button>
+          )}
+          {user && (
+            <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+              Einstellungen
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -123,6 +151,8 @@ export default function GoalsPage() {
           <UserAuthButton />
         </div>
       </nav>
+
+      {user && <PendingInviteBanner />}
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-8">
         <div>

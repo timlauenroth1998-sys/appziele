@@ -1,6 +1,6 @@
 # PROJ-6: Coach-Klienten-Ansicht
 
-## Status: Planned
+## Status: In Progress
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -143,6 +143,38 @@ usePendingInvites   → ausstehende Einladungen für eingeloggten Nutzer
 
 ### Neue Packages
 - `resend` — E-Mail-Versand (Einladung + Benachrichtigung bei Roadmap-Update)
+
+## Frontend Implementation (2026-04-16)
+
+Implemented UI components and pages on top of the existing backend (API routes + hooks).
+
+### New pages
+- `src/app/coach/page.tsx` — Coach dashboard: client list (active + pending), invite button, disconnect confirmation. Gated by `useCoachRole`; shows "Kein Coach-Zugang" for non-coach users.
+- `src/app/coach/[clientId]/page.tsx` — Read-only client roadmap using `use('params')` for async route params, same tab layout as `/roadmap` (Wochenfokus / Jahresplan / pro Lebensbereich), with `CommentButton` slot on each item. Bulk loads `roadmap_comments` for the client and renders a badge + count on items that have comments.
+- `src/app/settings/page.tsx` — Client-side privacy controls. Lists active coaches and per-life-area visibility switches (default: visible). Uses `useAreaPermissions`.
+- `src/app/admin/page.tsx` — Admin dashboard with a Coach-Verwaltung panel (email lookup → grant/revoke). Protected by `useCoachRole().isAdmin`. Links to `/admin/library`.
+
+### New components (`src/components/coach/`)
+- `InviteClientDialog.tsx` — shadcn Dialog + email validation + loading/success/error states; calls `useCoachClients().invite()`.
+- `CommentButton.tsx` — Small speech-bubble icon button with count badge.
+- `CommentDialog.tsx` — Shows existing comments, textarea with 500-char limit, delete per-comment, supports `canEdit=false` for client read-only view.
+- `PendingInviteBanner.tsx` — Indigo banner rendered below nav on `/goals` and `/roadmap` for users with pending invites; accept/decline buttons call `usePendingInvites().respond()`.
+
+### Modified existing files
+- `src/components/roadmap/RoadmapItemCard.tsx` — Added `readOnly?: boolean` and `commentSlot?: ReactNode` props. When `readOnly` is true: edit pencil is hidden, checkbox is replaced with a static completed indicator (or nothing), and the editing mode is short-circuited. Comment slot renders absolute-positioned top-right.
+- `src/components/roadmap/TimelineAccordion.tsx`, `WeekFocusView.tsx`, `YearPlanView.tsx` — Added `readOnly` + `renderCommentSlot` props that pass through to the cards.
+- `src/hooks/useRoadmapStorage.ts` — After a successful Supabase upsert, fires a non-awaited POST to `/api/coach/notify` with Authorization header; wrapped in try/catch + `.catch()` so it never blocks the UI.
+- `src/app/goals/page.tsx`, `src/app/roadmap/page.tsx` — Added "Klienten" nav link (visible only when `useCoachRole().isCoach`), "Einstellungen" link for logged-in users, and `<PendingInviteBanner />` below the nav.
+
+### New API route
+- `src/app/api/admin/lookup-user/route.ts` — Admin-only email → `{ userId, email, role }` resolver. Used by the new `/admin` UI to find a user before calling the existing `POST /api/admin/set-coach-role`. Reuses `createServerClient()` + `getUserFromRequest()` auth helpers; paginated `listUsers` lookup (MVP-simple).
+
+### Known deviations from spec
+- Client label on `/coach/[clientId]` currently shows a truncated UUID. Mapping UUID → email would require a server-side lookup that respects privacy (not wired for the frontend pass). Coach email lookup on `/settings` uses `invited_email` from `coach_client_relations` because the client has no direct visibility into `auth.users`.
+- Email-only invitations (client has no account yet) are handled on the server side via email-only send; no DB row is persisted in that case, matching the existing backend behaviour.
+
+### Build verification
+- `npm run build` passes with no TypeScript errors. All 14 routes compile (including the new `/admin`, `/coach`, `/coach/[clientId]`, `/settings`, `/api/admin/lookup-user`).
 
 ## QA Test Results
 _To be added by /qa_

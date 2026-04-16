@@ -64,6 +64,23 @@ export function useRoadmapStorage() {
         { user_id: session.user.id, data, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       )
+
+      // Fire-and-forget: notify any connected coaches about the roadmap update.
+      // We intentionally do NOT await this — it must never block the UI.
+      try {
+        void fetch('/api/coach/notify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ kind: 'roadmap_updated' }),
+        }).catch(() => {
+          // Silently ignore — notifications are best-effort.
+        })
+      } catch {
+        // ignore
+      }
     } else {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     }

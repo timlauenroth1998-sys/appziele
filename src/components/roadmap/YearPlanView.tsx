@@ -1,8 +1,8 @@
 'use client'
 
+import { ReactNode, useState } from 'react'
 import { LifeAreaRoadmap, RoadmapItem, LifeAreaColor, LIFE_AREA_COLOR_MAP } from '@/lib/types'
 import { RoadmapItemCard } from './RoadmapItemCard'
-import { useState } from 'react'
 
 interface Props {
   lifeAreaRoadmaps: LifeAreaRoadmap[]
@@ -10,6 +10,8 @@ interface Props {
   completed: Set<string>
   onToggleComplete: (id: string) => void
   onUpdateItem: (lifeAreaId: string, section: string, subKey: string | null, item: RoadmapItem) => void
+  readOnly?: boolean
+  renderCommentSlot?: (item: RoadmapItem) => ReactNode
 }
 
 const QUARTERS = [
@@ -30,7 +32,15 @@ const currentMonth = new Date().getMonth()
 const currentMonthKey = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][currentMonth]
 const currentQuarterKey = ['q1','q1','q1','q2','q2','q2','q3','q3','q3','q4','q4','q4'][currentMonth]
 
-export function YearPlanView({ lifeAreaRoadmaps, areaColors, completed, onToggleComplete, onUpdateItem }: Props) {
+export function YearPlanView({
+  lifeAreaRoadmaps,
+  areaColors,
+  completed,
+  onToggleComplete,
+  onUpdateItem,
+  readOnly = false,
+  renderCommentSlot,
+}: Props) {
   const [openCell, setOpenCell] = useState<string | null>(null) // "q1-jan-areaId"
 
   if (!lifeAreaRoadmaps.length) return null
@@ -128,8 +138,10 @@ export function YearPlanView({ lifeAreaRoadmaps, areaColors, completed, onToggle
                                     key={item.id}
                                     item={item}
                                     completed={completed.has(item.id)}
-                                    onToggleComplete={onToggleComplete}
+                                    onToggleComplete={readOnly ? undefined : onToggleComplete}
                                     onSave={updated => onUpdateItem(lar.lifeAreaId, 'months', month, updated)}
+                                    readOnly={readOnly}
+                                    commentSlot={renderCommentSlot ? renderCommentSlot(item) : undefined}
                                   />
                                 ))}
                               </div>

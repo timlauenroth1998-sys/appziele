@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ interface Props {
   onSave: (updated: RoadmapItem) => void
   completed?: boolean
   onToggleComplete?: (id: string) => void
+  readOnly?: boolean
+  commentSlot?: ReactNode
 }
 
 interface ParsedEntry {
@@ -35,7 +37,14 @@ function parseEntry(text: string): ParsedEntry {
   }
 }
 
-export function RoadmapItemCard({ item, onSave, completed = false, onToggleComplete }: Props) {
+export function RoadmapItemCard({
+  item,
+  onSave,
+  completed = false,
+  onToggleComplete,
+  readOnly = false,
+  commentSlot,
+}: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.text)
 
@@ -50,7 +59,7 @@ export function RoadmapItemCard({ item, onSave, completed = false, onToggleCompl
     setEditing(false)
   }
 
-  if (editing) {
+  if (editing && !readOnly) {
     return (
       <div className="space-y-2 p-3 border border-gray-200 rounded-lg bg-white">
         <Textarea
@@ -68,32 +77,42 @@ export function RoadmapItemCard({ item, onSave, completed = false, onToggleCompl
   }
 
   const parsed = parseEntry(item.text)
+  const showCheckbox = !readOnly && onToggleComplete
 
   return (
     <div className={`group relative rounded-xl border bg-white shadow-sm hover:shadow-md transition-all overflow-hidden ${completed ? 'border-green-200 opacity-75' : 'border-gray-100'}`}>
-      {/* Edit button */}
-      <button
-        type="button"
-        onClick={() => { setDraft(item.text); setEditing(true) }}
-        className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded px-1.5 py-0.5"
-        aria-label="Bearbeiten"
-      >
-        ✎
-      </button>
+      {/* Edit button (hidden in read-only mode) */}
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() => { setDraft(item.text); setEditing(true) }}
+          className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded px-1.5 py-0.5"
+          aria-label="Bearbeiten"
+        >
+          ✎
+        </button>
+      )}
       {item.isEdited && (
-        <div className="absolute top-2.5 right-10">
+        <div className={`absolute top-2.5 ${readOnly ? 'right-2.5' : 'right-10'}`}>
           <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
             Bearbeitet
           </Badge>
         </div>
       )}
 
+      {/* Comment slot (top-right, only shown when provided) */}
+      {commentSlot && (
+        <div className="absolute top-2 right-2 z-10">
+          {commentSlot}
+        </div>
+      )}
+
       {/* Main goal with checkbox */}
       <div className="px-4 pt-4 pb-3 flex items-start gap-3">
-        {onToggleComplete && (
+        {showCheckbox && (
           <button
             type="button"
-            onClick={() => onToggleComplete(item.id)}
+            onClick={() => onToggleComplete!(item.id)}
             aria-label={completed ? 'Als offen markieren' : 'Als erledigt markieren'}
             className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border-2 transition-colors flex items-center justify-center ${
               completed
@@ -103,6 +122,14 @@ export function RoadmapItemCard({ item, onSave, completed = false, onToggleCompl
           >
             {completed && <span className="text-xs leading-none">✓</span>}
           </button>
+        )}
+        {readOnly && completed && (
+          <span
+            className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-green-500 border-2 border-green-500 text-white flex items-center justify-center"
+            aria-label="Abgeschlossen"
+          >
+            <span className="text-xs leading-none">✓</span>
+          </span>
         )}
         <p className={`text-sm font-medium leading-relaxed pr-8 flex-1 ${completed ? 'line-through text-gray-400' : 'text-gray-900'}`}>
           {parsed.goal}

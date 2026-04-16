@@ -1,5 +1,6 @@
 'use client'
 
+import { ReactNode } from 'react'
 import {
   Accordion,
   AccordionContent,
@@ -16,6 +17,8 @@ interface Props {
   completed: Set<string>
   onToggleComplete: (id: string) => void
   onUpdateItem: (section: string, subKey: string | null, item: RoadmapItem) => void
+  readOnly?: boolean
+  renderCommentSlot?: (item: RoadmapItem) => ReactNode
 }
 
 const MONTH_LABELS: Record<string, string> = {
@@ -50,12 +53,14 @@ function ProgressPill({ done, total }: { done: number; total: number }) {
 }
 
 function ItemList({
-  items, completed, onToggleComplete, onUpdate,
+  items, completed, onToggleComplete, onUpdate, readOnly, renderCommentSlot,
 }: {
   items: RoadmapItem[]
   completed: Set<string>
   onToggleComplete: (id: string) => void
   onUpdate: (item: RoadmapItem) => void
+  readOnly?: boolean
+  renderCommentSlot?: (item: RoadmapItem) => ReactNode
 }) {
   if (!items?.length) return <p className="text-xs text-gray-400 italic">Keine Einträge</p>
   return (
@@ -65,15 +70,25 @@ function ItemList({
           key={item.id}
           item={item}
           completed={completed.has(item.id)}
-          onToggleComplete={onToggleComplete}
+          onToggleComplete={readOnly ? undefined : onToggleComplete}
           onSave={onUpdate}
+          readOnly={readOnly}
+          commentSlot={renderCommentSlot ? renderCommentSlot(item) : undefined}
         />
       ))}
     </div>
   )
 }
 
-export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleComplete, onUpdateItem }: Props) {
+export function TimelineAccordion({
+  lifeAreaRoadmap,
+  color,
+  completed,
+  onToggleComplete,
+  onUpdateItem,
+  readOnly = false,
+  renderCommentSlot,
+}: Props) {
   const tl = lifeAreaRoadmap.timeline
   const colorMap = LIFE_AREA_COLOR_MAP[color as keyof typeof LIFE_AREA_COLOR_MAP] ?? LIFE_AREA_COLOR_MAP.blue
   const defaultOpen = getCurrentSections()
@@ -98,7 +113,8 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
         </AccordionTrigger>
         <AccordionContent className="px-4 py-3 bg-white">
           <ItemList items={tl.vision5y} completed={completed} onToggleComplete={onToggleComplete}
-            onUpdate={item => onUpdateItem('vision5y', null, item)} />
+            onUpdate={item => onUpdateItem('vision5y', null, item)}
+            readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
         </AccordionContent>
       </AccordionItem>
 
@@ -108,8 +124,9 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
           {sectionHeader('3-Jahresziele', tl.goals3y)}
         </AccordionTrigger>
         <AccordionContent className="px-4 py-3 bg-white">
-          <ItemList items={tl.goals3y}completed={completed} onToggleComplete={onToggleComplete}
-            onUpdate={item => onUpdateItem('goals3y', null, item)} />
+          <ItemList items={tl.goals3y} completed={completed} onToggleComplete={onToggleComplete}
+            onUpdate={item => onUpdateItem('goals3y', null, item)}
+            readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
         </AccordionContent>
       </AccordionItem>
 
@@ -119,8 +136,9 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
           {sectionHeader('Jahresziele', tl.goals1y)}
         </AccordionTrigger>
         <AccordionContent className="px-4 py-3 bg-white">
-          <ItemList items={tl.goals1y}completed={completed} onToggleComplete={onToggleComplete}
-            onUpdate={item => onUpdateItem('goals1y', null, item)} />
+          <ItemList items={tl.goals1y} completed={completed} onToggleComplete={onToggleComplete}
+            onUpdate={item => onUpdateItem('goals1y', null, item)}
+            readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
         </AccordionContent>
       </AccordionItem>
 
@@ -136,8 +154,9 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-4 py-3 bg-white">
-              <ItemList items={tl.quarters[q]}completed={completed} onToggleComplete={onToggleComplete}
-                onUpdate={item => onUpdateItem('quarters', q, item)} />
+              <ItemList items={tl.quarters[q]} completed={completed} onToggleComplete={onToggleComplete}
+                onUpdate={item => onUpdateItem('quarters', q, item)}
+                readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
             </AccordionContent>
           </AccordionItem>
         )
@@ -155,8 +174,9 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
               </span>
             </AccordionTrigger>
             <AccordionContent className="px-4 py-3 bg-white">
-              <ItemList items={tl.months[month]}completed={completed} onToggleComplete={onToggleComplete}
-                onUpdate={item => onUpdateItem('months', month, item)} />
+              <ItemList items={tl.months[month]} completed={completed} onToggleComplete={onToggleComplete}
+                onUpdate={item => onUpdateItem('months', month, item)}
+                readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
             </AccordionContent>
           </AccordionItem>
         )
@@ -169,8 +189,9 @@ export function TimelineAccordion({ lifeAreaRoadmap, color, completed, onToggleC
             {sectionHeader(`Woche ${i + 1}`, tl.weeks[w])}
           </AccordionTrigger>
           <AccordionContent className="px-4 py-3 bg-white">
-            <ItemList items={tl.weeks[w]}completed={completed} onToggleComplete={onToggleComplete}
-              onUpdate={item => onUpdateItem('weeks', w, item)} />
+            <ItemList items={tl.weeks[w]} completed={completed} onToggleComplete={onToggleComplete}
+              onUpdate={item => onUpdateItem('weeks', w, item)}
+              readOnly={readOnly} renderCommentSlot={renderCommentSlot} />
           </AccordionContent>
         </AccordionItem>
       ))}

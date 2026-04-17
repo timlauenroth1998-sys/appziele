@@ -1,6 +1,6 @@
 # PROJ-6: Coach-Klienten-Ansicht
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -236,4 +236,11 @@ Implemented UI components and pages on top of the existing backend (API routes +
 - `src/app/api/admin/set-coach-role/route.test.ts`
 
 ## Deployment
-_To be added by /deploy_
+**Deployed:** 2026-04-17
+**Production URL:** https://appziele.vercel.app
+**Vercel Deployment:** dpl_Eub5yE9YUzVjkYKT3XzFCMk9DVMP
+
+### New Environment Variables (added to Vercel)
+- `RESEND_API_KEY` — Resend API key for transactional emails
+- `RESEND_FROM_EMAIL` — Sender address (`no-reply@lauenroth-pt.de`)
+- `NEXT_PUBLIC_APP_URL` — App base URL for email links

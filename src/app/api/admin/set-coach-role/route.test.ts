@@ -5,6 +5,10 @@ const mockAuth = { user: null as null | { id: string; user_metadata?: Record<str
 
 vi.mock('@/lib/auth-server', () => ({
   getUserFromRequest: vi.fn(async () => mockAuth.user),
+  getAppRole: vi.fn((user: { user_metadata?: Record<string, unknown> }) => {
+    const meta = user?.user_metadata
+    return (meta?.app_role ?? meta?.role) as string | undefined
+  }),
 }))
 
 interface FakeUser { id: string; email?: string; user_metadata: Record<string, unknown> }
@@ -61,7 +65,7 @@ describe('POST /api/admin/set-coach-role', () => {
   })
 
   it('returns 403 when caller is not admin', async () => {
-    mockAuth.user = { id: 'u1', user_metadata: { role: 'user' } }
+    mockAuth.user = { id: 'u1', user_metadata: { app_role: 'user' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({
       userId: '550e8400-e29b-41d4-a716-446655440000',
@@ -71,14 +75,14 @@ describe('POST /api/admin/set-coach-role', () => {
   })
 
   it('returns 400 on invalid body', async () => {
-    mockAuth.user = { id: 'admin1', user_metadata: { role: 'admin' } }
+    mockAuth.user = { id: 'admin1', user_metadata: { app_role: 'admin' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({ userId: 'not-a-uuid', isCoach: true }))
     expect(res.status).toBe(400)
   })
 
   it('returns 404 when target user missing', async () => {
-    mockAuth.user = { id: 'admin1', user_metadata: { role: 'admin' } }
+    mockAuth.user = { id: 'admin1', user_metadata: { app_role: 'admin' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({
       userId: '550e8400-e29b-41d4-a716-446655440000',
@@ -88,10 +92,10 @@ describe('POST /api/admin/set-coach-role', () => {
   })
 
   it('refuses to downgrade an admin', async () => {
-    mockAuth.user = { id: 'admin1', user_metadata: { role: 'admin' } }
+    mockAuth.user = { id: 'admin1', user_metadata: { app_role: 'admin' } }
     dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'] = {
       id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-      user_metadata: { role: 'admin' },
+      user_metadata: { app_role: 'admin' },
     }
     const { POST } = await import('./route')
     const res = await POST(makeReq({
@@ -102,10 +106,10 @@ describe('POST /api/admin/set-coach-role', () => {
   })
 
   it('promotes user to coach', async () => {
-    mockAuth.user = { id: 'admin1', user_metadata: { role: 'admin' } }
+    mockAuth.user = { id: 'admin1', user_metadata: { app_role: 'admin' } }
     dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'] = {
       id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-      user_metadata: { role: 'user' },
+      user_metadata: { app_role: 'user' },
     }
     const { POST } = await import('./route')
     const res = await POST(makeReq({
@@ -113,14 +117,14 @@ describe('POST /api/admin/set-coach-role', () => {
       isCoach: true,
     }))
     expect(res.status).toBe(200)
-    expect(dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'].user_metadata.role).toBe('coach')
+    expect(dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'].user_metadata.app_role).toBe('coach')
   })
 
   it('demotes coach back to user', async () => {
-    mockAuth.user = { id: 'admin1', user_metadata: { role: 'admin' } }
+    mockAuth.user = { id: 'admin1', user_metadata: { app_role: 'admin' } }
     dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'] = {
       id: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-      user_metadata: { role: 'coach' },
+      user_metadata: { app_role: 'coach' },
     }
     const { POST } = await import('./route')
     const res = await POST(makeReq({
@@ -128,6 +132,6 @@ describe('POST /api/admin/set-coach-role', () => {
       isCoach: false,
     }))
     expect(res.status).toBe(200)
-    expect(dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'].user_metadata.role).toBe('user')
+    expect(dbState.users['7c9e6679-7425-40de-944b-e07fc1f90ae7'].user_metadata.app_role).toBe('user')
   })
 })

@@ -9,6 +9,10 @@ const mockAuth = { user: null as null | { id: string; email?: string; user_metad
 
 vi.mock('@/lib/auth-server', () => ({
   getUserFromRequest: vi.fn(async () => mockAuth.user),
+  getAppRole: vi.fn((user: { user_metadata?: Record<string, unknown> }) => {
+    const meta = user?.user_metadata
+    return (meta?.app_role ?? meta?.role) as string | undefined
+  }),
 }))
 
 const emailSend = vi.fn(async () => ({ data: { id: 'em_1' }, error: null }))
@@ -113,28 +117,28 @@ describe('POST /api/coach/invite', () => {
   })
 
   it('returns 403 when caller is not a coach', async () => {
-    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { role: 'user' } }
+    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { app_role: 'user' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({ email: 'client@example.com' }))
     expect(res.status).toBe(403)
   })
 
   it('returns 400 for invalid email', async () => {
-    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { role: 'coach' } }
+    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { app_role: 'coach' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({ email: 'not-an-email' }))
     expect(res.status).toBe(400)
   })
 
   it('refuses self-invite', async () => {
-    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { role: 'coach' } }
+    mockAuth.user = { id: 'u1', email: 'me@example.com', user_metadata: { app_role: 'coach' } }
     const { POST } = await import('./route')
     const res = await POST(makeReq({ email: 'me@example.com' }))
     expect(res.status).toBe(400)
   })
 
   it('returns 409 when invite already pending', async () => {
-    mockAuth.user = { id: 'coach1', email: 'coach@example.com', user_metadata: { role: 'coach' } }
+    mockAuth.user = { id: 'coach1', email: 'coach@example.com', user_metadata: { app_role: 'coach' } }
     dbState.users = [{ id: 'client1', email: 'client@example.com' }]
     dbState.relations = [
       { coach_id: 'coach1', client_id: 'client1', status: 'pending', invited_email: 'client@example.com' },
@@ -145,7 +149,7 @@ describe('POST /api/coach/invite', () => {
   })
 
   it('creates pending relation and sends email on happy path', async () => {
-    mockAuth.user = { id: 'coach1', email: 'coach@example.com', user_metadata: { role: 'coach' } }
+    mockAuth.user = { id: 'coach1', email: 'coach@example.com', user_metadata: { app_role: 'coach' } }
     dbState.users = [{ id: 'client1', email: 'client@example.com' }]
     const { POST } = await import('./route')
     const res = await POST(makeReq({ email: 'client@example.com' }))

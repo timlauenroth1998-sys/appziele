@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase-server'
-import { getUserFromRequest } from '@/lib/auth-server'
+import { getUserFromRequest, getAppRole } from '@/lib/auth-server'
 import { getResendClient, getFromEmail, getAppUrl } from '@/lib/resend'
 
 export const dynamic = 'force-dynamic'
@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Authorization: must be a coach
-  const role = (user.user_metadata as Record<string, unknown> | null)?.role
-  if (role !== 'coach') {
+  const appRole = getAppRole(user)
+  if (appRole !== 'coach' && appRole !== 'admin') {
     return NextResponse.json({ error: 'Nur Coaches dürfen Klienten einladen.' }, { status: 403 })
   }
 

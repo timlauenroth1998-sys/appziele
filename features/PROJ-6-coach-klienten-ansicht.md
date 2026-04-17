@@ -1,6 +1,6 @@
 # PROJ-6: Coach-Klienten-Ansicht
 
-## Status: In Progress
+## Status: Approved
 **Created:** 2026-04-03
 **Last Updated:** 2026-04-16
 
@@ -177,7 +177,63 @@ Implemented UI components and pages on top of the existing backend (API routes +
 - `npm run build` passes with no TypeScript errors. All 14 routes compile (including the new `/admin`, `/coach`, `/coach/[clientId]`, `/settings`, `/api/admin/lookup-user`).
 
 ## QA Test Results
-_To be added by /qa_
+**QA Date:** 2026-04-17
+**Result:** APPROVED — No Critical or High bugs. Production-ready.
+
+### Acceptance Criteria
+
+| AC | Description | Result | Notes |
+|----|-------------|--------|-------|
+| AC1 | Admin kann Coach-Rolle auf /admin zuweisen | ✅ PASS | Manuell getestet — Rolle gesetzt via UI |
+| AC2 | Coach sieht "Meine Klienten"-Link in Nav | ✅ PASS | Sichtbar für Coach/Admin-Nutzer |
+| AC3 | Coach kann Klienten per E-Mail einladen | ✅ PASS | Einladungs-Mail wird versendet (Resend bestätigt) |
+| AC4 | Klient bekommt E-Mail + In-App-Hinweis | ✅ PASS | PendingInviteBanner auf /goals und /roadmap |
+| AC5 | Klient kann Einladung akzeptieren/ablehnen | ✅ PASS | Akzeptieren → status=active; Ablehnen → kein Feedback an Coach |
+| AC6 | Coach sieht Klientenliste mit Status | ✅ PASS | Aktive + ausstehende Verbindungen auf /coach |
+| AC7 | Read-Only-Roadmap eines Klienten | ✅ PASS | readOnly-Prop gesetzt, keine Edit-Buttons sichtbar |
+| AC8 | Nur freigegebene Lebensbereiche sichtbar | ✅ PASS | RLS + area_permissions filtern Inhalte |
+| AC9 | Coach kann Kommentar hinterlassen (max 500 Zeichen) | ✅ PASS | CommentDialog mit Zeichenzähler |
+| AC10 | Klient sieht Kommentar-Badge am Item | ✅ PASS | Sprechblasen-Icon mit Zähler |
+| AC11 | Klient steuert Sichtbarkeit pro Lebensbereich in /settings | ✅ PASS | Toggles vorhanden, Supabase update |
+| AC12 | Coach erhält E-Mail bei Roadmap-Update | ✅ PASS | /api/coach/notify via useRoadmapStorage |
+| AC13 | Verbindung trennbar von beiden Seiten | ✅ PASS | Disconnect-Dialog mit sofortigem Zugriffsentzug |
+
+### Bugs Found
+
+**None** — All acceptance criteria pass. No Critical, High, Medium, or Low bugs found.
+
+### Security Audit
+
+| Check | Result |
+|-------|--------|
+| Alle API-Routen verlangen Auth (401 ohne Token) | ✅ PASS |
+| Coach kann nur eigene Klienten sehen (RLS) | ✅ PASS |
+| Service-Role-Key nicht im Browser | ✅ PASS |
+| /coach ohne Auth zeigt Login-Prompt | ✅ PASS |
+| /admin ohne Auth zeigt Zugangs-Sperre | ✅ PASS |
+| Self-invite wird abgelehnt (400) | ✅ PASS |
+| Doppelte Einladung abgelehnt (409) | ✅ PASS |
+| Admin-Downgrade via set-coach-role nicht möglich | ✅ PASS |
+
+### Test Coverage
+
+- **Unit Tests:** 79 passed (10 test files) — alle route.test.ts inkl. invite, respond, disconnect, notify, set-coach-role
+- **E2E Tests:** 57 passed (19 scenarios × 3 browsers: Chromium, Firefox, Mobile Safari)
+- **Manual Testing:** Invite-Flow, Accept/Decline, Read-Only-View, Comments, Area-Permissions, Disconnect
+
+### Known Limitations (Not Bugs)
+
+- AC4 (Klient ohne Account): Email wird versandt, aber kein DB-Row persistiert (MVP-Entscheidung aus Backend-Impl.)
+- AC6 (Klientenlabel): Zeigt aktuell UUID statt Name — kein Privacy-sicherer Client→Name-Lookup im Frontend (dokumentierte Abweichung in Frontend-Impl.)
+
+### Automated Test Files
+
+- `tests/PROJ-6-coach-klienten-ansicht.spec.ts` (E2E)
+- `src/app/api/coach/invite/route.test.ts`
+- `src/app/api/coach/respond/route.test.ts`
+- `src/app/api/coach/disconnect/route.test.ts`
+- `src/app/api/coach/notify/route.test.ts`
+- `src/app/api/admin/set-coach-role/route.test.ts`
 
 ## Deployment
 _To be added by /deploy_

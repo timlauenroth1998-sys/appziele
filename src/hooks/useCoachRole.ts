@@ -16,8 +16,10 @@ export interface CoachRoleState {
  */
 export function useCoachRole(): CoachRoleState {
   const { user, isLoaded } = useAuth()
-  const role = (user?.user_metadata as Record<string, unknown> | undefined)?.role
-  const isAdmin = role === 'admin'
-  const isCoach = isAdmin || role === 'coach'
+  const meta = user?.user_metadata as Record<string, unknown> | undefined
+  // Supabase reserves 'role' in JWT — use 'app_role' to avoid collision
+  const appRole = meta?.app_role ?? meta?.role
+  const isAdmin = appRole === 'admin'
+  const isCoach = isAdmin || appRole === 'coach'
   return { isCoach, isAdmin, isLoaded }
 }

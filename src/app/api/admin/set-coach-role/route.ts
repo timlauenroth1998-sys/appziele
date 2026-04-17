@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase-server'
-import { getUserFromRequest } from '@/lib/auth-server'
+import { getUserFromRequest, getAppRole } from '@/lib/auth-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nicht authentifiziert.' }, { status: 401 })
   }
 
-  const role = (user.user_metadata as Record<string, unknown> | null)?.role
-  if (role !== 'admin') {
+  if (getAppRole(user) !== 'admin') {
     return NextResponse.json({ error: 'Nur Admins dürfen Coach-Rechte vergeben.' }, { status: 403 })
   }
 
@@ -43,11 +42,11 @@ export async function POST(req: NextRequest) {
 
   const existingMeta = (target.user.user_metadata ?? {}) as Record<string, unknown>
   // Never downgrade an admin via this endpoint
-  if (existingMeta.role === 'admin') {
+  if (existingMeta.app_role === 'admin') {
     return NextResponse.json({ error: 'Admin-Rolle kann nicht geändert werden.' }, { status: 400 })
   }
 
-  const newMeta = { ...existingMeta, role: isCoach ? 'coach' : 'user' }
+  const newMeta = { ...existingMeta, app_role: isCoach ? 'coach' : 'user' }
 
   const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
     user_metadata: newMeta,

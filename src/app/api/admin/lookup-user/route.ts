@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase-server'
-import { getUserFromRequest } from '@/lib/auth-server'
+import { getUserFromRequest, getAppRole } from '@/lib/auth-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,8 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nicht authentifiziert.' }, { status: 401 })
   }
 
-  const role = (user.user_metadata as Record<string, unknown> | null)?.role
-  if (role !== 'admin') {
+  if (getAppRole(user) !== 'admin') {
     return NextResponse.json({ error: 'Nur Admins dürfen Nutzer suchen.' }, { status: 403 })
   }
 

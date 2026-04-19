@@ -75,6 +75,25 @@ Folgende Teile existieren bereits im Code, sind aber unfertig/unsicher:
 ---
 <!-- Sections below are added by subsequent skills -->
 
+## Frontend Implementation (2026-04-19)
+
+### Neue Seiten
+- `src/app/coach/library/page.tsx` — Coach-Bibliothekssuche: Suchbox, Ergebnisliste mit Relevanz-Score, Lade-Skeletons, Auth-Guard
+- `src/app/documents/page.tsx` — Klient-Dokumentenansicht: Liste geteilter Dokumente, "Lesen"-Button öffnet Volltext in Dialog (ScrollArea)
+
+### Erweiterte Seiten
+- `src/app/coach/[clientId]/page.tsx` — Neuer Abschnitt "Bibliothek teilen" unterhalb der Roadmap: Liste aller Library-Dokumente mit Toggle-Button (Teilen/Geteilt ✓). Optimistic-UI: Button wechselt sofort.
+- `src/app/coach/page.tsx` — "Bibliothek"-Link in Nav hinzugefügt (→ /coach/library)
+- `src/app/goals/page.tsx` — "Dokumente"-Link in beiden Nav-Varianten (empty state + voll) für eingeloggte Nutzer (→ /documents)
+
+### Neue Hooks
+- `src/hooks/useLibrarySearch.ts` — POST /api/library/search, query + 5 Ergebnisse, Loading/Error-States
+- `src/hooks/useDocumentShares.ts` — Lädt alle Library-Docs + aktuelle Shares für einen Klienten, share/unshare Funktionen
+- `src/hooks/useSharedDocuments.ts` — GET /api/library/shared für Klient, fetchContent für Volltext
+
+### Build-Verifikation
+- `npm run build` erfolgreich: alle 17 Routen kompilieren (inkl. /coach/library, /documents, /api/library/*)
+
 ## Backend Implementation (2026-04-19)
 
 ### Gesicherte bestehende Routen

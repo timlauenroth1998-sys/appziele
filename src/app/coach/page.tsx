@@ -132,6 +132,14 @@ export default function CoachPage() {
             variant="ghost"
             size="sm"
             className="text-gray-500 hover:text-gray-700"
+            onClick={() => router.push('/coach/library')}
+          >
+            Bibliothek
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-500 hover:text-gray-700"
             onClick={() => router.push('/settings')}
           >
             Einstellungen

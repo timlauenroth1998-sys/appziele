@@ -54,9 +54,14 @@ export default function GoalsPage() {
               </Button>
             )}
             {user && (
-              <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
-                Einstellungen
-              </Button>
+              <>
+                <Button variant="ghost" size="sm" onClick={() => router.push('/documents')}>
+                  Dokumente
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => router.push('/settings')}>
+                  Einstellungen
+                </Button>
+              </>
             )}
             <UserAuthButton />
           </div>

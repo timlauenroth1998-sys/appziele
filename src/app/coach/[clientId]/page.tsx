@@ -17,6 +17,7 @@ import { YearPlanView } from '@/components/roadmap/YearPlanView'
 import { useAuth } from '@/hooks/useAuth'
 import { useCoachRole } from '@/hooks/useCoachRole'
 import { useClientRoadmap } from '@/hooks/useClientRoadmap'
+import { useDocumentShares } from '@/hooks/useDocumentShares'
 import { LIFE_AREA_COLOR_MAP, RoadmapItem } from '@/lib/types'
 
 interface RouteParams {
@@ -36,6 +37,7 @@ export default function CoachClientPage({ params }: { params: Promise<RouteParam
   const { user, isLoaded: authLoaded } = useAuth()
   const { isCoach, isLoaded: roleLoaded } = useCoachRole()
   const { roadmap, profile, isLoaded: roadmapLoaded, error } = useClientRoadmap(clientId)
+  const { documents, sharedIds, isLoaded: sharesLoaded, acting, share, unshare } = useDocumentShares(clientId)
 
   const [activeArea, setActiveArea] = useState<string>('__week__')
   const [commentItemId, setCommentItemId] = useState<string | null>(null)
@@ -266,6 +268,55 @@ export default function CoachClientPage({ params }: { params: Promise<RouteParam
             ))}
           </Tabs>
         )}
+        {/* Library sharing section */}
+        <div className="border-t border-gray-100 pt-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Bibliothek teilen</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Wähle Dokumente aus, die du mit diesem Klienten teilen möchtest.
+          </p>
+          {!sharesLoaded ? (
+            <div className="space-y-2">
+              {[1, 2].map((i) => <div key={i} className="h-12 bg-gray-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+              <p className="text-sm text-gray-400">Noch keine Dokumente in der Bibliothek.</p>
+              <p className="text-xs text-gray-400 mt-1">Lade PDFs unter /admin/library hoch.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.map((doc) => {
+                const isShared = sharedIds.has(doc.id)
+                const isActing = acting === doc.id
+                return (
+                  <div key={doc.id} className="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-base">📄</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
+                        <p className="text-xs text-gray-400">{doc.chunk_count} Abschnitte</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isActing}
+                      onClick={() => void (isShared ? unshare(doc.id) : share(doc.id))}
+                      className={`shrink-0 ml-4 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
+                        isActing
+                          ? 'opacity-50 cursor-not-allowed border-gray-200 text-gray-400'
+                          : isShared
+                          ? 'border-green-200 bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                          : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                      }`}
+                    >
+                      {isActing ? '…' : isShared ? 'Geteilt ✓' : 'Teilen'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Comment dialog */}

@@ -21,6 +21,8 @@
 | PROJ-5 | Benutzerkonten & optionaler Login | Deployed | [PROJ-5](PROJ-5-benutzerkonten.md) | 2026-04-03 |
 | PROJ-6 | Coach-Klienten-Ansicht | Deployed | [PROJ-6](PROJ-6-coach-klienten-ansicht.md) | 2026-04-03 |
 
+| PROJ-7 | Coaching Library | Planned | [PROJ-7](PROJ-7-coaching-library.md) | 2026-04-19 |
+
 <!-- Add features above this line -->
 
-## Next Available ID: PROJ-7
+## Next Available ID: PROJ-8

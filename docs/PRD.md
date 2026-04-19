@@ -29,7 +29,8 @@ Eine web-basierte Coaching-App, die Coaches und ihre Klienten dabei unterstützt
 | P0 (MVP) | Roadmap-Dashboard & Fortschrittsanzeige | Planned |
 | P0 (MVP) | Kalender-Export (iCal/.ics) | Planned |
 | P1 | Benutzerkonten & optionaler Login | Planned |
-| P1 | Coach-Klienten-Ansicht | Planned |
+| P1 | Coach-Klienten-Ansicht | Deployed |
+| P1 | Coaching Library (PDF-Upload, KI-Suche, Teilen) | Planned |
 
 ## Success Metrics
 - Nutzer erstellen ihren ersten vollständigen Fahrplan in < 5 Minuten

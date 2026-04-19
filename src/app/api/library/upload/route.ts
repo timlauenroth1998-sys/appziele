@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extractText } from 'unpdf'
 import { createServerClient } from '@/lib/supabase-server'
+import { getUserFromRequest, getAppRole } from '@/lib/auth-server'
 import { chunkText } from '@/lib/chunker'
 import { embedTexts } from '@/lib/voyageai'
 
@@ -10,6 +11,10 @@ export const maxDuration = 60
 const BATCH_SIZE = 10
 
 export async function POST(req: NextRequest) {
+  const user = await getUserFromRequest(req)
+  if (!user) return NextResponse.json({ error: 'Nicht authentifiziert.' }, { status: 401 })
+  if (getAppRole(user) !== 'admin') return NextResponse.json({ error: 'Nur Admins dürfen Dokumente hochladen.' }, { status: 403 })
+
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null

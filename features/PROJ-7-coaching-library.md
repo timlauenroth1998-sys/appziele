@@ -1,6 +1,6 @@
 # PROJ-7: Coaching Library
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-19
 
@@ -74,6 +74,33 @@ Folgende Teile existieren bereits im Code, sind aber unfertig/unsicher:
 
 ---
 <!-- Sections below are added by subsequent skills -->
+
+## Backend Implementation (2026-04-19)
+
+### Gesicherte bestehende Routen
+- `POST /api/library/upload` — Admin-Auth-Check hinzugefügt
+- `GET /api/library/documents` — Admin-Auth-Check + Zod-Validation hinzugefügt
+- `DELETE /api/library/documents` — Admin-Auth-Check + UUID-Validation hinzugefügt
+- `POST /api/library/search` — Coach/Admin-Auth-Check + Zod-Validation hinzugefügt
+
+### Neue API-Routen
+- `POST /api/library/share` — Dokument mit verbundenem Klienten teilen (Coach only, verifiziert active-Verbindung)
+- `DELETE /api/library/share` — Teilen aufheben (Coach only)
+- `GET /api/library/shared` — Liste geteilter Dokumente für eingeloggten Klienten
+- `GET /api/library/content/[id]` — Vollen Dokumenttext abrufen (Admin/Coach immer; Klient nur wenn geteilt)
+
+### Gesicherte Frontend-Seite
+- `/admin/library` — Auth-Guard via `useAuth` + `useCoachRole`, Redirect zu `/auth` wenn nicht eingeloggt, Redirect zu `/admin` wenn nicht Admin. Nav mit ← Admin Button + UserAuthButton. Alle fetch-Calls mit Authorization-Header.
+
+### Datenbankstruktur
+- Migration `supabase/migrations/20260419_proj7_library.sql` erstellt mit: `documents`, `document_chunks`, `match_chunks` RPC, `document_shares` + vollständige RLS-Policies
+
+### KI-Integration
+- `fetchLibraryContext()` in `/api/roadmap/generate` war bereits implementiert — embeddet Ziele als Query, holt Top-8 relevante Chunks und injiziert sie in den Claude-Prompt
+
+### Tests
+- `src/app/api/library/documents/route.test.ts` — 7 Tests (GET + DELETE, auth + authz + happy path)
+- `src/app/api/library/share/route.test.ts` — 7 Tests (POST + DELETE, auth + authz + client-connection guard + happy path)
 
 ## Tech Design (Solution Architect)
 **Date:** 2026-04-19

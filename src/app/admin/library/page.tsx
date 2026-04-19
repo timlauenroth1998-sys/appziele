@@ -1,10 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { UserAuthButton } from '@/components/UserAuthButton'
+import { useAuth } from '@/hooks/useAuth'
+import { useCoachRole } from '@/hooks/useCoachRole'
 
 interface Document {
   id: string
@@ -21,6 +26,10 @@ function formatBytes(bytes: number) {
 }
 
 export default function LibraryPage() {
+  const router = useRouter()
+  const { user, session, isLoaded: authLoaded } = useAuth()
+  const { isAdmin, isLoaded: roleLoaded } = useCoachRole()
+
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -29,10 +38,15 @@ export default function LibraryPage() {
   const [success, setSuccess] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const authHeaders = () => ({
+    Authorization: `Bearer ${session?.access_token ?? ''}`,
+  })
+
   async function loadDocuments() {
+    if (!session) return
     setLoading(true)
     try {
-      const res = await fetch('/api/library/documents')
+      const res = await fetch('/api/library/documents', { headers: authHeaders() })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setDocuments(data)
@@ -43,7 +57,14 @@ export default function LibraryPage() {
     }
   }
 
-  useEffect(() => { loadDocuments() }, [])
+  useEffect(() => {
+    if (authLoaded && roleLoaded) {
+      if (!user) { router.replace('/auth?from=/admin/library'); return }
+      if (!isAdmin) { router.replace('/admin'); return }
+      loadDocuments()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoaded, roleLoaded, user, isAdmin])
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -62,7 +83,7 @@ export default function LibraryPage() {
     }, 1500)
 
     try {
-      const res = await fetch('/api/library/upload', { method: 'POST', body: formData })
+      const res = await fetch('/api/library/upload', { method: 'POST', headers: authHeaders(), body: formData })
       clearInterval(progressInterval)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -85,7 +106,7 @@ export default function LibraryPage() {
     try {
       const res = await fetch('/api/library/documents', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ id }),
       })
       const data = await res.json()
@@ -96,8 +117,34 @@ export default function LibraryPage() {
     }
   }
 
+  if (!authLoaded || !roleLoaded) {
+    return (
+      <div className="min-h-screen bg-white">
+        <nav className="border-b border-gray-100 bg-white px-6 py-4 flex items-center justify-between max-w-2xl mx-auto">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </nav>
+        <div className="max-w-2xl mx-auto px-6 py-12 space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-white max-w-2xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-white">
+      <nav className="border-b border-gray-100 bg-white px-6 py-4 flex items-center justify-between max-w-2xl mx-auto">
+        <button
+          type="button"
+          onClick={() => router.push('/admin')}
+          className="text-sm text-gray-400 hover:text-gray-700"
+        >
+          ← Admin
+        </button>
+        <UserAuthButton />
+      </nav>
+      <div className="max-w-2xl mx-auto px-6 py-12">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Coaching-Bibliothek</h1>
         <p className="text-sm text-gray-500">
@@ -184,6 +231,7 @@ export default function LibraryPage() {
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   )

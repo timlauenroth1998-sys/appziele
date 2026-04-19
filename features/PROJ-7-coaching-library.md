@@ -1,6 +1,6 @@
 # PROJ-7: Coaching Library
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-04-19
 **Last Updated:** 2026-04-19
 
@@ -76,7 +76,158 @@ Folgende Teile existieren bereits im Code, sind aber unfertig/unsicher:
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+**Date:** 2026-04-19
+
+### Überblick
+
+Ein Großteil des Backends existiert bereits (Upload, Embedding, Suche). Der Fokus liegt auf drei Lücken: **Sicherheit** (alle API-Routen absichern), **Teilen** (neuer Datenfluss Coach → Klient) und **KI-Anreicherung** (Roadmap-API um Library-Kontext erweitern).
+
+---
+
+### Komponentenstruktur
+
+```
+/admin/library (existiert — wird gesichert + mit Nav versehen)
++-- Nav (← zurück zu /admin, UserAuthButton)
++-- LibraryUploadArea (Drag-&-Drop PDF, Fortschrittsbalken)
++-- LibraryDocumentList
+    +-- Dokument-Karte (Name, Größe, Chunks, Datum, Löschen-Button)
+
+/coach/library (neue Unterseite)
++-- Nav (← zurück zu /coach)
++-- LibrarySearchBox (Freitext-Eingabe + Suchen-Button)
++-- LibrarySearchResults (max. 5 Treffer)
+    +-- Treffer-Karte (Chunk-Text, Dokumentname, Relevanz-Score)
+
+/coach/[clientId] (erweitert — neuer Tab)
++-- Tabs: Roadmap | Kommentare | Bibliothek (neu)
+    +-- Tab "Bibliothek"
+        +-- ShareDocumentPanel
+            +-- Liste aller Bibliotheksdokumente
+            +-- "Teilen / Nicht teilen" Toggle pro Dokument
+            +-- Bereits-geteilt-Badge
+
+/documents (neue Seite — nur für Klienten)
++-- Nav
++-- SharedDocumentList
+    +-- Dokument-Karte (Name, Coach, geteilt am)
+    +-- Klick → DocumentTextViewer (Dialog mit ganzem Dokument-Text)
+```
+
+---
+
+### Datenmodell
+
+**Vorhandene Tabellen (bleiben unverändert):**
+
+```
+documents
+  id (UUID), name, size_bytes, chunk_count, created_at
+
+document_chunks
+  id (UUID), document_id → documents, content (Text),
+  embedding (vector 1024), chunk_index
+```
+
+**Neue Tabelle:**
+
+```
+document_shares
+  id (UUID)
+  document_id → documents (ON DELETE CASCADE)
+  coach_id    → auth.users
+  client_id   → auth.users
+  created_at
+
+Unique: (document_id, coach_id, client_id)
+```
+
+**RLS-Regeln:**
+
+| Tabelle | Wer darf was |
+|---------|-------------|
+| `documents` | Admin: alle Operationen; Coach: nur lesen; Klient: kein Zugriff |
+| `document_chunks` | Admin: alle Operationen; Coach: lesen (für Suche via RPC); Klient: kein Zugriff |
+| `document_shares` | Coach: eigene Zeilen anlegen/löschen; Klient: eigene Zeilen lesen |
+| `match_chunks` (RPC) | Alle authentifizierten Nutzer (Coach benötigt Zugriff für Suche) |
+
+---
+
+### API-Routen
+
+**Bestehend — wird gesichert:**
+
+| Route | Änderung |
+|-------|---------|
+| `POST /api/library/upload` | + Admin-Auth-Check |
+| `GET /api/library/documents` | + Admin-Auth-Check |
+| `DELETE /api/library/documents` | + Admin-Auth-Check |
+| `POST /api/library/search` | + Coach/Admin-Auth-Check |
+
+**Neu:**
+
+| Route | Zweck | Wer |
+|-------|-------|-----|
+| `POST /api/library/share` | Dokument mit Klient teilen | Coach |
+| `DELETE /api/library/share` | Teilen aufheben | Coach |
+| `GET /api/library/shared` | Liste geteilter Docs für den Klienten | Klient |
+| `GET /api/library/content/[id]` | Vollen Text eines Dokuments lesen | Klient (nur wenn geteilt) |
+
+**Geändert:**
+
+| Route | Änderung |
+|-------|---------|
+| `POST /api/roadmap/generate` | Vor Claude-Aufruf: Top-5 Library-Chunks laden und als Kontext einbetten |
+
+---
+
+### KI-Anreicherung der Roadmap (Ablauf)
+
+```
+Nutzer startet Roadmap-Generierung
+    ↓
+Server: Ziele + Vision des Nutzers als Query embedden
+    ↓
+Suche: Top-5 ähnliche Chunks aus Bibliothek (min. 30% Ähnlichkeit)
+    ↓
+Chunks gefunden?
+  JA  → Chunks als "Coaching-Materialien" in den Claude-Prompt einbauen
+  NEIN → Normaler Claude-Prompt (kein Fehler, kein Hinweis nötig)
+    ↓
+Claude generiert Roadmap (mit oder ohne Library-Kontext)
+```
+
+---
+
+### Neue Hooks
+
+```
+useLibrarySearch      → Suche in der Bibliothek (Coach, /coach/library)
+useDocumentShares     → Geteilte Docs eines Klienten verwalten (Coach, /coach/[clientId])
+useSharedDocuments    → Liste geteilter Docs abrufen (Klient, /documents)
+```
+
+---
+
+### Tech-Entscheidungen
+
+| Entscheidung | Warum |
+|---|---|
+| Bestehende Upload/Suche-Infrastruktur behalten | Funktioniert bereits, kein Grund neu zu bauen |
+| Auth nachrüsten statt neu schreiben | Minimaler Eingriff — nur `getUserFromRequest` + Rollencheck vorne |
+| `document_shares` als eigene Tabelle | Klare Trennung Coach/Klient-Sichtbarkeit; CASCADE-Delete vereinfacht Cleanup |
+| Klient liest Dokument-Text via `content/[id]` | Kein PDF-Storage nötig; Text wurde beim Upload bereits extrahiert und in Chunks gespeichert |
+| Roadmap-Anreicherung serverseitig | Voyage-API-Key darf nicht im Browser sein |
+| Kein Volltext-Speicher | Text ist in `document_chunks.content` stückweise vorhanden; für die Textansicht werden alle Chunks eines Dokuments zusammengesetzt |
+
+---
+
+### Keine neuen Packages
+
+Alle benötigten Libraries sind bereits installiert:
+- `unpdf` — PDF-Textextraktion
+- `@supabase/supabase-js` — Datenbankzugriff
+- Voyage AI — eigene `src/lib/voyageai.ts` (kein Package, direkter Fetch)
 
 ## QA Test Results
 _To be added by /qa_

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase.rpc('match_chunks', {
       query_embedding: embedding,
       match_count: matchCount,
-      min_similarity: 0.3,
+      min_similarity: 0.1,
     })
 
     if (error) throw new Error(error.message)

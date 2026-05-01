@@ -20,30 +20,32 @@ CREATE INDEX IF NOT EXISTS documents_created_at_idx ON documents (created_at DES
 
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 
--- Admin: full access (service-role key bypasses RLS — but set explicit policies for anon/authenticated)
-CREATE POLICY IF NOT EXISTS "Admin reads documents"
+DROP POLICY IF EXISTS "Admin reads documents" ON documents;
+CREATE POLICY "Admin reads documents"
   ON documents FOR SELECT
   USING (
     (auth.jwt() ->> 'app_role') = 'admin'
     OR (auth.jwt() -> 'user_metadata' ->> 'app_role') = 'admin'
   );
 
-CREATE POLICY IF NOT EXISTS "Admin inserts documents"
+DROP POLICY IF EXISTS "Admin inserts documents" ON documents;
+CREATE POLICY "Admin inserts documents"
   ON documents FOR INSERT
   WITH CHECK (
     (auth.jwt() ->> 'app_role') = 'admin'
     OR (auth.jwt() -> 'user_metadata' ->> 'app_role') = 'admin'
   );
 
-CREATE POLICY IF NOT EXISTS "Admin deletes documents"
+DROP POLICY IF EXISTS "Admin deletes documents" ON documents;
+CREATE POLICY "Admin deletes documents"
   ON documents FOR DELETE
   USING (
     (auth.jwt() ->> 'app_role') = 'admin'
     OR (auth.jwt() -> 'user_metadata' ->> 'app_role') = 'admin'
   );
 
--- Coach: read-only access (for search and sharing)
-CREATE POLICY IF NOT EXISTS "Coach reads documents"
+DROP POLICY IF EXISTS "Coach reads documents" ON documents;
+CREATE POLICY "Coach reads documents"
   ON documents FOR SELECT
   USING (
     (auth.jwt() ->> 'app_role') IN ('coach', 'admin')
@@ -69,7 +71,8 @@ CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
 
 ALTER TABLE document_chunks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Admin manages chunks"
+DROP POLICY IF EXISTS "Admin manages chunks" ON document_chunks;
+CREATE POLICY "Admin manages chunks"
   ON document_chunks FOR ALL
   USING (
     (auth.jwt() ->> 'app_role') = 'admin'
@@ -80,14 +83,15 @@ CREATE POLICY IF NOT EXISTS "Admin manages chunks"
     OR (auth.jwt() -> 'user_metadata' ->> 'app_role') = 'admin'
   );
 
--- Coach and authenticated users: read-only (for search RPC)
-CREATE POLICY IF NOT EXISTS "Authenticated reads chunks"
+DROP POLICY IF EXISTS "Authenticated reads chunks" ON document_chunks;
+CREATE POLICY "Authenticated reads chunks"
   ON document_chunks FOR SELECT
   USING (auth.role() = 'authenticated');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. match_chunks function (pgvector similarity search)
 -- ─────────────────────────────────────────────────────────────────────────────
+DROP FUNCTION IF EXISTS match_chunks(vector, integer, double precision);
 CREATE OR REPLACE FUNCTION match_chunks(
   query_embedding vector(1024),
   match_count     INT DEFAULT 5,
@@ -135,20 +139,22 @@ CREATE INDEX IF NOT EXISTS document_shares_client_id_idx ON document_shares (cli
 
 ALTER TABLE document_shares ENABLE ROW LEVEL SECURITY;
 
--- Coach: manage their own shares
-CREATE POLICY IF NOT EXISTS "Coach reads own shares"
+DROP POLICY IF EXISTS "Coach reads own shares" ON document_shares;
+CREATE POLICY "Coach reads own shares"
   ON document_shares FOR SELECT
   USING (auth.uid() = coach_id);
 
-CREATE POLICY IF NOT EXISTS "Coach inserts shares"
+DROP POLICY IF EXISTS "Coach inserts shares" ON document_shares;
+CREATE POLICY "Coach inserts shares"
   ON document_shares FOR INSERT
   WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY IF NOT EXISTS "Coach deletes own shares"
+DROP POLICY IF EXISTS "Coach deletes own shares" ON document_shares;
+CREATE POLICY "Coach deletes own shares"
   ON document_shares FOR DELETE
   USING (auth.uid() = coach_id);
 
--- Client: read shares where they are the client
-CREATE POLICY IF NOT EXISTS "Client reads own shares"
+DROP POLICY IF EXISTS "Client reads own shares" ON document_shares;
+CREATE POLICY "Client reads own shares"
   ON document_shares FOR SELECT
   USING (auth.uid() = client_id);

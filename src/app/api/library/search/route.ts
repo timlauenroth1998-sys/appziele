@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   try {
 
     const embedding = await embedQuery(query)
+    console.log('[library/search] embedding dims:', embedding.length, 'first3:', embedding.slice(0, 3))
     const supabase = createServerClient()
 
     const { data, error } = await supabase.rpc('match_chunks', {
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       min_similarity: 0.1,
     })
 
+    console.log('[library/search] rpc result count:', data?.length ?? 0, 'error:', error?.message)
     if (error) throw new Error(error.message)
     return NextResponse.json(data ?? [])
   } catch (err) {

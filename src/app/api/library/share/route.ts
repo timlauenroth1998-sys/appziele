@@ -5,6 +5,35 @@ import { getUserFromRequest, getAppRole } from '@/lib/auth-server'
 
 export const dynamic = 'force-dynamic'
 
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req)
+  if (!user) return NextResponse.json({ error: 'Nicht authentifiziert.' }, { status: 401 })
+  const role = getAppRole(user)
+  if (role !== 'coach' && role !== 'admin') {
+    return NextResponse.json({ error: 'Nur Coaches dürfen Freigaben einsehen.' }, { status: 403 })
+  }
+
+  const { searchParams } = new URL(req.url)
+  const clientId = searchParams.get('clientId')
+  if (!clientId || !/^[0-9a-f-]{36}$/i.test(clientId)) {
+    return NextResponse.json({ error: 'Ungültige Klienten-ID.' }, { status: 400 })
+  }
+
+  const supabase = createServerClient()
+  const { data, error } = await supabase
+    .from('document_shares')
+    .select('document_id')
+    .eq('coach_id', user.id)
+    .eq('client_id', clientId)
+
+  if (error) {
+    console.error('[library/share GET]', error.message)
+    return NextResponse.json({ error: 'Laden fehlgeschlagen.' }, { status: 500 })
+  }
+
+  return NextResponse.json((data ?? []).map((r) => ({ documentId: r.document_id })))
+}
+
 const shareSchema = z.object({
   documentId: z.string().uuid('Ungültige Dokument-ID'),
   clientId: z.string().uuid('Ungültige Klienten-ID'),

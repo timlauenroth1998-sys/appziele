@@ -16,13 +16,13 @@ export interface SharedDoc {
 }
 
 export function useSharedDocuments() {
-  const { session } = useAuth()
+  const { session, isLoaded: authLoaded } = useAuth()
   const [docs, setDocs] = useState<SharedDoc[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!session) return
+    if (!session) { if (authLoaded) setIsLoaded(true); return }
     setIsLoaded(false)
     setError(null)
     try {
@@ -37,7 +37,7 @@ export function useSharedDocuments() {
     } finally {
       setIsLoaded(true)
     }
-  }, [session])
+  }, [session, authLoaded])
 
   useEffect(() => { void load() }, [load])
 

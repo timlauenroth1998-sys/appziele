@@ -40,6 +40,17 @@ vi.mock('@/lib/supabase-server', () => ({
       }
       if (table === 'document_shares') {
         return {
+          select: (_cols: string) => ({
+            eq: (col1: string, val1: string) => ({
+              eq: (col2: string, val2: string) => {
+                const rows = dbShares.filter(s =>
+                  s[col1 as keyof ShareRow] === val1 &&
+                  s[col2 as keyof ShareRow] === val2
+                )
+                return Promise.resolve({ data: rows, error: null })
+              },
+            }),
+          }),
           upsert: async (row: ShareRow) => {
             const idx = dbShares.findIndex(s =>
               s.document_id === row.document_id &&
@@ -80,6 +91,13 @@ function makeReq(method: string, body: unknown) {
   })
 }
 
+function makeGetReq(clientId: string) {
+  return new NextRequest(`http://localhost/api/library/share?clientId=${clientId}`, {
+    method: 'GET',
+    headers: { Authorization: 'Bearer token' },
+  })
+}
+
 const VALID_DOC_ID = '550e8400-e29b-41d4-a716-446655440001'
 const VALID_CLIENT_ID = '550e8400-e29b-41d4-a716-446655440002'
 
@@ -87,6 +105,32 @@ beforeEach(() => {
   mockAuth.user = null
   dbRelations.length = 0
   dbShares.length = 0
+})
+
+describe('GET /api/library/share', () => {
+  it('returns 401 when unauthenticated', async () => {
+    const { GET } = await import('./route')
+    const res = await GET(makeGetReq(VALID_CLIENT_ID))
+    expect(res.status).toBe(401)
+  })
+
+  it('returns 403 for non-coach', async () => {
+    mockAuth.user = { id: 'u1', user_metadata: { app_role: 'user' } }
+    const { GET } = await import('./route')
+    const res = await GET(makeGetReq(VALID_CLIENT_ID))
+    expect(res.status).toBe(403)
+  })
+
+  it('returns shares for coach', async () => {
+    mockAuth.user = { id: 'coach1', user_metadata: { app_role: 'coach' } }
+    dbShares.push({ document_id: VALID_DOC_ID, coach_id: 'coach1', client_id: VALID_CLIENT_ID })
+    const { GET } = await import('./route')
+    const res = await GET(makeGetReq(VALID_CLIENT_ID))
+    expect(res.status).toBe(200)
+    const body = await res.json() as Array<{ documentId: string }>
+    expect(body).toHaveLength(1)
+    expect(body[0].documentId).toBe(VALID_DOC_ID)
+  })
 })
 
 describe('POST /api/library/share', () => {

@@ -20,7 +20,7 @@
 | PROJ-4 | Kalender-Export (iCal/.ics) | Deployed | [PROJ-4](PROJ-4-kalender-export.md) | 2026-04-03 |
 | PROJ-5 | Benutzerkonten & optionaler Login | Deployed | [PROJ-5](PROJ-5-benutzerkonten.md) | 2026-04-03 |
 | PROJ-6 | Coach-Klienten-Ansicht | Deployed | [PROJ-6](PROJ-6-coach-klienten-ansicht.md) | 2026-04-03 |
-| PROJ-7 | Coaching Library | Approved | [PROJ-7](PROJ-7-coaching-library.md) | 2026-04-19 |
+| PROJ-7 | Coaching Library | Deployed | [PROJ-7](PROJ-7-coaching-library.md) | 2026-04-19 |
 
 <!-- Add features above this line -->
 

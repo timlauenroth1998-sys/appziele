@@ -1,6 +1,6 @@
 # PROJ-7: Coaching Library
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-04-19
 **Last Updated:** 2026-05-01
 
@@ -345,4 +345,17 @@ Alle benötigten Libraries sind bereits installiert:
 - `tests/PROJ-7-coaching-library.spec.ts` — 24 E2E tests
 
 ## Deployment
-_To be added by /deploy_
+
+**Date:** 2026-05-01
+**Production URL:** https://appziele.vercel.app
+**Vercel Deployment:** appziele-2v5p9be0c-timlauenroth1998-9851s-projects.vercel.app
+
+**Deployed components:**
+- `/admin/library` — PDF-Upload für Admins
+- `/coach/library` — Bibliothekssuche für Coaches
+- `/coach/[clientId]` — Dokumente mit Klienten teilen
+- `/documents` — Geteilte Dokumente für Klienten
+- `/api/library/*` — Upload, Suche, Teilen, Inhalt (alle gesichert)
+- Roadmap-KI-Anreicherung via `fetchLibraryContext()`
+
+**Supabase Migration:** `20260419_proj7_library.sql` — angewendet 2026-05-01

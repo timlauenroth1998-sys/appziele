@@ -14,45 +14,50 @@ export function useGoalStorage() {
     let cancelled = false
 
     async function load() {
-      const { data: { session } } = await supabase.auth.getSession()
+      let session = null
+      try {
+        const res = await supabase.auth.getSession()
+        session = res.data.session
+      } catch { /* Supabase unreachable — fall through to localStorage */ }
 
       if (session?.user) {
-        // Logged in: load from Supabase, fall back to localStorage if empty
-        const { data } = await supabase
-          .from('goal_profiles')
-          .select('data')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-        if (!cancelled) {
-          if (data?.data) {
+        let loaded = false
+        try {
+          const { data } = await supabase
+            .from('goal_profiles')
+            .select('data')
+            .eq('user_id', session.user.id)
+            .maybeSingle()
+          if (!cancelled && data?.data) {
             setProfile(data.data as GoalProfile)
-          } else {
-            // Supabase empty — try localStorage and migrate lazily
-            try {
-              const raw = localStorage.getItem(STORAGE_KEY)
-              if (raw) {
-                const local = JSON.parse(raw) as GoalProfile
-                setProfile(local)
-                // Silently upload to Supabase so future loads work
-                supabase.from('goal_profiles').upsert(
-                  { user_id: session.user.id, data: local, updated_at: new Date().toISOString() },
-                  { onConflict: 'user_id' }
-                )
-              }
-            } catch { /* ignore */ }
+            loaded = true
           }
-          setIsLoaded(true)
+        } catch { /* Supabase unreachable */ }
+
+        if (!loaded) {
+          // Supabase empty or unreachable — fall back to localStorage
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY)
+            if (raw && !cancelled) {
+              const local = JSON.parse(raw) as GoalProfile
+              setProfile(local)
+              // Migrate to Supabase in background
+              void supabase.from('goal_profiles').upsert(
+                { user_id: session.user.id, data: local, updated_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
+              )
+            }
+          } catch { /* ignore */ }
         }
       } else {
         // Not logged in: load from localStorage
         try {
           const raw = localStorage.getItem(STORAGE_KEY)
           if (raw && !cancelled) setProfile(JSON.parse(raw) as GoalProfile)
-        } catch {
-          // ignore parse errors
-        }
-        if (!cancelled) setIsLoaded(true)
+        } catch { /* ignore */ }
       }
+
+      if (!cancelled) setIsLoaded(true)
     }
 
     load()
@@ -61,15 +66,16 @@ export function useGoalStorage() {
 
   const saveProfile = useCallback(async (data: GoalProfile) => {
     const updated = { ...data, updatedAt: new Date().toISOString() }
-    const { data: { session } } = await supabase.auth.getSession()
 
+    // Always save to localStorage as offline backup
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { /* ignore */ }
+
+    const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
       await supabase.from('goal_profiles').upsert(
         { user_id: session.user.id, data: updated, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' }
       )
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
     }
     setProfile(updated)
   }, [])

@@ -43,7 +43,7 @@ export default function HomePage() {
       {/* Nav */}
       <nav className="border-b border-gray-100 px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
         <span className="font-semibold text-gray-900 text-lg">Ziele App</span>
-        <Button variant="ghost" size="sm" onClick={() => router.push('/onboarding')}>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/auth')}>
           Anmelden
         </Button>
       </nav>

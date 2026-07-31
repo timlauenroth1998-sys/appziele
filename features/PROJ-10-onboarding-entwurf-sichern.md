@@ -1,6 +1,6 @@
 # PROJ-10: Onboarding-Entwurf sichern
 
-## Status: In Progress
+## Status: In Review
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -218,7 +218,115 @@ Der Entwurfs-Speicher ist von der Oberfläche getrennt und damit direkt prüfbar
 - Sichtprüfung Desktop (1280 px) und Mobil (375 px)
 
 ## QA Test Results
-_To be added by /qa_
+
+**Getestet:** 2026-07-31
+**App:** http://localhost:3000
+**Browser:** Chromium 145 und WebKit (Mobile Safari, iPhone 13)
+**Tester:** QA Engineer (AI) — hat dieses Feature selbst gebaut, daher bewusst gegen die eigene Umsetzung geprüft
+
+### Akzeptanzkriterien
+
+#### Sichern — 4/5
+- [x] Änderungen werden verzögert geschrieben (~500 ms), im Unit-Test nachgewiesen
+- [x] Entwurf enthält Vision, alle Lebensbereiche mit vier Zielebenen und den Schritt
+- [x] Eigener Schlüssel `ziele_onboarding_draft`, getrennt vom Profil
+- [x] Zeitstempel vorhanden und korrekt
+- [ ] **BUG-1:** Es wird auch dann geschrieben, wenn der Nutzer **gar nichts eingegeben hat**
+
+#### Wiederherstellen — 4/5
+- [x] Eingaben **und** Schrittnummer werden korrekt zurückgespielt
+- [x] Hinweis mit relativer Zeitangabe erscheint („heute um 15:19 Uhr")
+- [x] „Neu beginnen" mit Rückfrage vorhanden
+- [x] Wiederherstellung überlebt Tab- und Browser-Schließen
+- [ ] **BUG-1:** „Ohne vorhandenen Entwurf … zeigt keinen Hinweis" gilt nur beim allerersten Aufruf
+
+#### Verwerfen — 3/4
+- [x] Entwurf wird nach erfolgreichem Abschluss gelöscht
+- [x] Entwurf bleibt bei fehlgeschlagenem Speichern erhalten
+- [x] Entwurf älter als 30 Tage wird ignoriert und gelöscht
+- [ ] **BUG-2:** „Neu beginnen" legt unmittelbar danach wieder einen leeren Entwurf an
+
+#### Schutz vorhandener Ziele — 3/4
+- [x] Warnung erscheint beim ersten Aufruf mit vorhandenem Profil
+- [x] Link auf `/goals` vorhanden und funktionsfähig
+- [x] Warnung lässt sich wegklicken
+- [ ] **BUG-3:** Warnung verschwindet dauerhaft, sobald ein Entwurf existiert
+
+#### Ausfall des Speichers — 2/3
+- [x] Schreibfehler erzeugt keine Exception (Unit-Test mit simuliertem Fehler)
+- [x] Hinweistext vorhanden
+- [ ] **Ungeprüft:** Verhalten im echten Safari-Privatmodus nicht verifiziert — nur simuliert
+
+#### Robustheit — 2/2
+- [x] Beschädigtes JSON, falsche Formatnummer, unvollständige Lebensbereiche werden verworfen, kein Absturz
+- [x] Präparierter Entwurf mit leerer Bereichsliste auf Schritt 3 rendert ohne Fehler
+
+### Edge Cases
+- [x] Entwurf aus älterer Version → verworfen (Formatnummer)
+- [x] Beschädigter Entwurf → verworfen, kein Absturz
+- [x] Sehr großer Entwurf (200 KB) → geschrieben, keine Fehler
+- [x] Abschluss schlägt fehl → Entwurf bleibt erhalten
+- [~] Zwei Tabs → nicht automatisiert prüfbar, laut Spec bewusst „letzter gewinnt"
+- [~] Zwei Personen an einem Browser → laut Spec bewusst akzeptiert
+
+### Sicherheitsprüfung (Red Team)
+- [x] **XSS über Zieltext:** `"><script>window.__xss=1</script>` wird als Text dargestellt, nicht ausgeführt
+- [x] **XSS über eigenen Lebensbereichsnamen:** `<img src=x onerror=…>` wird escaped; überlebt auch den Speicher-/Wiederherstellungszyklus als reiner Text
+- [x] **Prototype Pollution über präparierten Entwurf:** kein Durchgriff auf `Object.prototype`
+- [x] **Keine Geheimnisse:** Der Entwurf enthält ausschließlich Nutzereingaben, keine Tokens
+- [x] **Kein Serverweg:** Das Feature sendet nichts — keine neue Angriffsfläche im Backend
+- **Ergebnis: keine Sicherheitsmängel gefunden.**
+
+Anmerkung zur Vertraulichkeit: Zieltexte können sehr persönlich sein (Gesundheit, Finanzen) und liegen unverschlüsselt im Browser-Speicher. Das gilt für das bestehende Zielprofil ebenso und ist kein Regressionsbefund — aber ein Punkt für das Datenschutzkonzept.
+
+### Regressionstest
+- [x] Volle E2E-Suite: **159 bestanden, 2 übersprungen**, über Chromium und WebKit
+- [x] 106 Unit-Tests grün
+- [x] `/goals`, `/roadmap`, `/coach`, `/documents`, `/settings`, `/admin` unverändert erreichbar
+- [x] Production-Build fehlerfrei
+- [x] Responsiv geprüft auf 375 px und 1280 px
+
+### Gefundene Fehler
+
+#### BUG-1: Leerer Entwurf entsteht schon beim reinen Seitenaufruf
+- **Schwere:** Medium
+- **Schritte:**
+  1. `/onboarding` öffnen, **nichts** eingeben
+  2. Eine Sekunde warten, dann Seite neu laden
+  3. Erwartet: leerer Wizard ohne Hinweis
+  4. Tatsächlich: grüne Leiste „Wir haben deinen Stand gesichert"
+- **Ursache:** Der Sicherungs-Effekt läuft unmittelbar nach der Übernahme, also auch ohne jede Nutzereingabe.
+- **Wirkung:** Betrifft jeden Nutzer ab dem zweiten Aufruf. Entwertet die Aussage des Hinweises und macht ihn zu Rauschen.
+- **Priorität:** Vor dem Deployment beheben
+
+#### BUG-2: „Neu beginnen" legt sofort wieder einen Entwurf an
+- **Schwere:** Low
+- **Schritte:**
+  1. Etwas eingeben, neu laden, „Neu beginnen" → „Verwerfen"
+  2. Eine Sekunde warten, Speicher prüfen
+  3. Erwartet: kein Entwurf
+  4. Tatsächlich: neuer leerer Entwurf vorhanden; nach erneutem Reload erscheint der Hinweis wieder
+- **Ursache:** Dieselbe wie BUG-1 — das Zurücksetzen ändert den Zustand und löst dadurch eine neue Sicherung aus.
+- **Priorität:** Zusammen mit BUG-1 beheben (eine Ursache)
+
+#### BUG-3: Warnung vor dem Überschreiben verschwindet nach einem Reload
+- **Schwere:** **High**
+- **Schritte:**
+  1. Als Nutzer mit bereits gespeicherten Zielen `/onboarding` öffnen → Warnung erscheint korrekt
+  2. Etwas eingeben, dann Seite neu laden (oder später zurückkehren)
+  3. Erwartet: Warnung weiterhin sichtbar
+  4. Tatsächlich: Warnung fehlt; der Wizard lässt sich abschließen und **ersetzt die bestehenden Ziele ohne jeden Hinweis**
+- **Ursache:** Die Anzeigebedingung schließt die Warnung aus, sobald ein Entwurf wiederhergestellt wurde (`&& !restored`). Das war eine bewusste Entscheidung beim Bau, hält der Prüfung gegen das Akzeptanzkriterium aber nicht stand.
+- **Wirkung:** Der Datenverlust-Pfad, den dieses Kriterium ausdrücklich schließen soll, ist in genau dem Ablauf wieder offen, der durch das Feature erst häufig wird — Onboarding unterbrechen und später fortsetzen.
+- **Priorität:** **Vor dem Deployment beheben**
+
+### Zusammenfassung
+- **Akzeptanzkriterien:** 18 von 23 bestanden, 1 ungeprüft (Safari-Privatmodus), 4 durch Fehler blockiert
+- **Fehler:** 3 (0 kritisch, **1 hoch**, 1 mittel, 1 niedrig)
+- **Sicherheit:** bestanden, keine Mängel
+- **Regression:** keine
+- **Produktionsreif: NEIN** — BUG-3 muss zuerst behoben werden
+- **Empfehlung:** BUG-1 und BUG-2 teilen eine Ursache und sind zusammen mit BUG-3 in einem Durchgang zu beheben. Danach erneut `/qa`.
 
 ## Deployment
 _To be added by /deploy_

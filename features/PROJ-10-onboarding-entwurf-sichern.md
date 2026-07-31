@@ -1,6 +1,6 @@
 # PROJ-10: Onboarding-Entwurf sichern
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -103,7 +103,88 @@ Die auslösende Ursache (Chrome-Auto-Übersetzung, die React zerlegte) wurde am 
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+**Erstellt:** 2026-07-31
+
+### Kurzfassung
+Reine Frontend-Arbeit. **Kein Server, keine Datenbank, keine Migration, keine neue Bibliothek.** Der Wizard bekommt einen Begleiter, der bei jeder Eingabe eine Kopie im Browser ablegt und sie beim nächsten Öffnen zurückspielt. Das ist die kleinste der drei geplanten Erweiterungen und lässt sich unabhängig ausliefern.
+
+### A) Komponentenstruktur
+
+```
+Onboarding-Seite
++-- Warnhinweis "Du hast bereits Ziele"          (NEU, nur bei vorhandenem Profil)
+|   +-- Link "Bestehende Ziele bearbeiten" -> /goals
+|   +-- Schließen-Aktion ("Trotzdem neu starten")
++-- Hinweisleiste "Wir haben deinen Stand gesichert"  (NEU, nur bei vorhandenem Entwurf)
+|   +-- Datum der letzten Änderung
+|   +-- Aktion "Neu beginnen" (mit Rückfrage)
++-- Fortschrittsanzeige + Schrittpunkte          (bestehend, unverändert)
++-- Schritt 1: Vision                            (bestehend, unverändert)
++-- Schritt 2: Lebensbereiche                    (bestehend, unverändert)
++-- Schritt 3: Ziele                             (bestehend, unverändert)
++-- Schritt 4: Zusammenfassung                   (bestehend, unverändert)
++-- Hinweis "Speicherung nicht möglich"          (NEU, nur im Ausnahmefall)
++-- Navigation                                   (bestehend, unverändert)
+```
+
+**Die vier bestehenden Schritt-Komponenten werden nicht angefasst.** Sie bekommen ihre Werte weiterhin von der Onboarding-Seite und melden Änderungen dorthin zurück. Die Sicherung setzt eine Ebene darüber an — dadurch bleibt das Risiko für bestehende Funktionalität sehr klein.
+
+Dazu kommt ein **Entwurfs-Speicher** als eigenständiger, wiederverwendbarer Baustein. Er kapselt Lesen, Schreiben, Prüfen und Verwerfen und liegt neben den bereits vorhandenen Speicher-Bausteinen für Ziele und Roadmap. Damit folgt er dem Muster, das im Projekt schon etabliert ist.
+
+### B) Datenmodell
+
+Ein Entwurf enthält:
+
+- **Die 5-Jahres-Vision** — freier Text, darf leer sein
+- **Die Liste der Lebensbereiche**, je mit Name, Farbe, Kennzeichen „selbst angelegt" und den vier Zielebenen (Jahr, Quartal, Monat, Woche) als Text
+- **Den zuletzt geöffneten Schritt** — eine Zahl von 1 bis 4
+- **Zeitpunkt der letzten Änderung** — für die Anzeige im Hinweis und für die 30-Tage-Regel
+- **Eine Formatnummer** — damit eine spätere App-Version erkennt, dass ein alter Entwurf nicht mehr passt, und ihn verwirft statt daran zu scheitern
+
+**Ablage:** Browser-Speicher (localStorage), unter einem **eigenen Schlüssel**, klar getrennt vom fertigen Zielprofil.
+
+**Kein Server, kein Konto nötig.** Der Entwurf verlässt das Gerät nicht.
+
+### C) Technische Entscheidungen
+
+**Warum nur im Browser und nicht in der Datenbank?**
+Der Fehler, um den es geht, passiert *innerhalb einer Sitzung an einem Gerät* — Absturz, Reload, geschlossenes Tab. Dafür genügt der Browser-Speicher vollständig. Ein Server-Abgleich würde einen neuen Konfliktfall einführen (zwei Geräte, zwei halbfertige Entwürfe — welcher gewinnt?) und das Onboarding an einen Login binden, das heute bewusst ohne funktioniert. Der Gerätewechsel ist als eigenes Feature später nachrüstbar, ohne dass hier etwas umgebaut werden muss.
+
+**Warum ein eigener Schlüssel und nicht das bestehende Zielprofil mitbenutzen?**
+Ein Entwurf ist unvollständig. Läge er unter demselben Schlüssel, würden alle anderen Teile der App — Landing Page, Zielübersicht, Roadmap — ihn für ein fertiges Profil halten. Die Landing Page leitet zum Beispiel automatisch weiter, sobald ein Profil existiert. Die Trennung verhindert diese Verwechslung von vornherein.
+
+**Warum verzögert speichern statt bei jedem Tastendruck?**
+Bei jedem Zeichen zu schreiben würde bei langen Zieltexten spürbar bremsen. Ein kurzer Aufschub von etwa einer halben Sekunde nach der letzten Eingabe bündelt das zu einem einzigen Schreibvorgang. Für den Nutzer nicht wahrnehmbar, für die Flüssigkeit der Eingabe entscheidend.
+
+**Warum wird der Entwurf beim Wiederkommen ungefragt eingespielt?**
+Jede Rückfrage ist eine Hürde — auch für die Mehrheit, die einfach weitermachen will. Der Hinweis mit „Neu beginnen" macht den Zustand transparent und lässt sich in einem Klick auflösen. Das ist freundlicher als ein Dialog, der bei jedem Einstieg im Weg steht.
+
+**Warum wird die Struktur beim Lesen geprüft?**
+Ein Entwurf kann aus einer älteren App-Version stammen oder beschädigt sein. Ohne Prüfung würde die App beim Wiederherstellen abstürzen — also genau dort, wo dieses Feature eigentlich schützen soll. Passt die Struktur nicht, wird der Entwurf stillschweigend verworfen und der Wizard startet leer.
+
+**Warum bleibt der Entwurf erhalten, wenn das Speichern am Ende fehlschlägt?**
+Das ist der Moment, in dem der Nutzer am meisten zu verlieren hat. Erst wenn das Zielprofil nachweislich gespeichert ist, darf der Entwurf gelöscht werden.
+
+**Warum die Warnung bei bestehenden Zielen?**
+Bei der Ausarbeitung der Spec ist ein zweiter, bisher unbemerkter Verlustpfad aufgefallen: Ein erneuter Wizard-Durchlauf überschreibt heute vorhandene Ziele **ohne jede Rückfrage**. Das gehört hierher, weil es dieselbe Ursache hat — der Wizard weiß nichts über den Zustand außerhalb seiner selbst.
+
+### D) Abhängigkeiten
+
+**Keine neuen Pakete.** Die Verzögerung beim Speichern wird mit Bordmitteln umgesetzt; eine Bibliothek wie `lodash.debounce` wäre für diese eine Stelle unverhältnismäßig.
+
+Verwendet werden ausschließlich bereits vorhandene shadcn/ui-Bausteine: `Alert` für die beiden Hinweise, `AlertDialog` für die Rückfrage bei „Neu beginnen", `Button` für die Aktionen.
+
+### E) Risiken und Grenzen
+
+| Risiko | Einschätzung |
+|---|---|
+| Zwei Personen teilen sich einen Browser | Person B sieht den Entwurf von Person A. Bewusst akzeptiert; Datum im Hinweis macht es erkennbar, „Neu beginnen" löst es sofort. |
+| Zwei Tabs parallel | Letzter Schreibvorgang gewinnt. Beide Tabs zeigen denselben Wizard, der Schaden ist gering. |
+| Browser-Speicher gesperrt (Safari-Privatmodus) | Onboarding läuft unverändert, nur ohne Sicherung. Einmaliger Hinweis. |
+| Wiederherstellung erzeugt sichtbares Springen | Wird vermieden, indem der Zustand vor dem ersten Zeichnen geladen wird — dasselbe Muster, das die App beim Zielprofil bereits verwendet. |
+
+### F) Testbarkeit
+Der Entwurfs-Speicher ist von der Oberfläche getrennt und damit direkt prüfbar: Schreiben, Lesen, abgelaufener Entwurf, beschädigter Entwurf, gesperrter Speicher. Ergänzend ein Durchlauf im echten Browser, der mitten im Wizard neu lädt und prüft, dass Eingaben **und** Schrittnummer zurückkommen. Das Projekt hat für beide Ebenen bereits die passende Struktur.
 
 ## QA Test Results
 _To be added by /qa_

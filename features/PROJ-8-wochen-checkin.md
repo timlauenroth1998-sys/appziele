@@ -1,6 +1,6 @@
 # PROJ-8: Wöchentlicher Check-in
 
-## Status: Planned
+## Status: Architected
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -103,7 +103,113 @@ Die Aktualitäts-Prüfung in PROJ-9 fragt ausschließlich: *Existiert ein Check-
 <!-- Sections below are added by subsequent skills -->
 
 ## Tech Design (Solution Architect)
-_To be added by /architecture_
+**Erstellt:** 2026-07-31
+
+### Kurzfassung
+Braucht **Frontend und Backend**. Neu sind: eine Datenbanktabelle mit Zugriffsregeln, eine eigene Seite für den Check-in, eine Verlaufsansicht und ein Einstiegspunkt auf der Roadmap-Seite. Der Umfang entspricht etwa PROJ-6 (Coach-Klienten-Ansicht) — dort gibt es ein gutes Vorbild für Tabelle plus Zugriffsregeln plus Coach-Freigabe.
+
+### A) Komponentenstruktur
+
+```
+Roadmap-Seite                                    (bestehend)
++-- Einstiegskarte "Wochen-Check-in"             (NEU)
+    +-- offen:      Woche + Aufforderung
+    +-- erledigt:   erreichte Quote + "Bearbeiten"
+    +-- ohne Login: Hinweis + Link zur Anmeldung
+
+Check-in-Seite                                   (NEU, eigene Route)
++-- Wochenauswahl
+|   +-- Liste vergangener Wochen, erledigte markiert
+|   +-- zukünftige Wochen nicht wählbar
++-- Zielliste, gruppiert nach Lebensbereich
+|   +-- je Ziel: Text + Erledigt-Schalter
+|   +-- Lebensbereich ohne Wochenziele: Leerzustand
++-- Stimmungs-Skala 1-10                         (Pflichtfeld)
++-- Schalter "Mit meinem Coach teilen"           (nur bei aktiver Verbindung)
++-- Abschluss
+    +-- Ergebnis "5 von 8 Zielen erreicht"
+
+Verlaufsansicht                                  (NEU)
++-- Liste aller Check-ins, neueste zuerst
+    +-- je Eintrag: Woche, Quote, Stimmung
+    +-- Kennzeichen "nachgetragen"
+    +-- Kennzeichen "zu einer früheren Roadmap"
+```
+
+Dazu ein **Check-in-Speicher** als eigener Baustein, analog zu den vorhandenen Speicher-Bausteinen für Ziele, Roadmap und Coach-Kommentare.
+
+### B) Datenmodell
+
+Ein Check-in enthält:
+
+- **Wer** — Verweis auf das Nutzerkonto
+- **Für welche Woche** — das Datum des Montags dieser Woche
+- **Wann abgeschickt** — Zeitpunkt des Absendens
+- **Welche Ziele erledigt wurden** — Liste der Zielkennungen
+- **Wie die Ziele damals lauteten** — eine Textkopie aller abgefragten Ziele
+- **Stimmungswert** — Zahl von 1 bis 10
+- **Freigabe** — mit dem Coach geteilt: ja oder nein
+
+**Regel:** Pro Nutzer und Woche höchstens ein Eintrag. Diese Regel wird in der Datenbank verankert, nicht nur in der Oberfläche — sonst entstehen bei Doppelklick oder zwei Geräten stille Duplikate.
+
+**Ablage:** Supabase. Login erforderlich.
+
+**Warum die Textkopie der Ziele?** Wird die Roadmap neu generiert, ändern sich alle Zielkennungen. Ohne Kopie zeigten alte Check-ins auf Ziele, die es nicht mehr gibt — der Verlauf wäre wertlos. Mit Kopie bleibt jeder Eintrag für sich lesbar, unabhängig davon, wie oft die Roadmap seither erneuert wurde.
+
+**Zugriffsregeln** (in der Datenbank durchgesetzt, nicht nur in der Oberfläche):
+- Ein Nutzer sieht und ändert ausschließlich seine eigenen Check-ins
+- Ein Coach sieht einen Check-in nur, wenn **beides** gilt: der Klient hat ihn freigegeben **und** die Coach-Verbindung ist aktiv
+- Niemand sonst hat Zugriff
+
+Das entspricht dem Muster, das PROJ-6 für Roadmap-Kommentare bereits verwendet.
+
+### C) Technische Entscheidungen
+
+**Welche Woche ist „diese Woche"? — die offene Frage aus der Spec**
+
+Die Roadmap kennt nur vier Wochenebenen. Sie werden ab dem Generierungsdatum gezählt: Woche 1 ist die Woche der Generierung, Woche 4 die vierte danach. Was danach kommt, war ungeklärt.
+
+**Empfehlung: Die vier Wochen wiederholen sich, begleitet von einer Aufforderung zur Aktualisierung.** Ab Woche 5 fragt der Check-in wieder die Ziele von Woche 1 ab. Zusätzlich erscheint auf der Roadmap-Seite ein deutlicher Hinweis: *„Deine Roadmap ist über einen Monat alt — Zeit für eine Aktualisierung."*
+
+Begründung: Die Alternative wäre, den Check-in nach vier Wochen zu sperren. Das würde ausgerechnet die Nutzer bestrafen, die durchhalten — und sie in dem Moment aus dem Ritual werfen, in dem es zu greifen beginnt. Die Wiederholung ist inhaltlich unsauber (dieselben Ziele erneut), hält aber die Gewohnheit am Leben und erzeugt genau den richtigen Druck, die Roadmap zu erneuern.
+
+Die Mechanik dafür ist schon da: PROJ-2 erkennt über einen Vergleichswert, wenn sich die Ziele geändert haben, und zeigt bereits einen „Roadmap aktualisieren"-Hinweis. Dieser wird nur um das Alterskriterium erweitert.
+
+**Das ist ausdrücklich eine Übergangslösung.** Die saubere Antwort ist eine Roadmap, die sich auf Basis des tatsächlichen Fortschritts fortschreibt — also KI-gestützte Neuplanung statt Wiederholung. Das ist ein eigenes Feature und setzt genau die Check-in-Daten voraus, die hier erst entstehen. Die Reihenfolge stimmt also; hier wird nur nichts verbaut.
+
+**Warum eine neue Tabelle und nicht die bestehende Erledigt-Liste erweitern?**
+Die vorhandene Tabelle für Erledigungen speichert **eine Zeile pro Nutzer** mit einer Liste erledigter Kennungen — ohne Zeitbezug. Sie beantwortet „was ist erledigt", nicht „wann". Für Streaks, Verlauf und die Ampel in PROJ-9 ist der Zeitpunkt aber die entscheidende Information. Beides zusammenzuführen wäre eine eigene Migration mit Risiko für bestehende Daten. Die neue Tabelle steht daher zunächst daneben; die Zusammenführung ist als eigenes Vorhaben vermerkt.
+
+**Warum wird ein bestehender Check-in überschrieben statt ergänzt?**
+Ein zweiter Eintrag für dieselbe Woche würde jede Auswertung mehrdeutig machen — welcher zählt? Eine Woche hat genau einen Stand.
+
+**Warum zwei getrennte Zeitangaben (Woche und Absendezeitpunkt)?**
+Weil beliebiges Nachtragen erlaubt ist. Ohne die Trennung könnte jemand acht Altwochen an einem Abend nachpflegen und stünde in PROJ-9 auf Grün. Die Ampel fragt deshalb nach der *abgedeckten Woche*, nicht nach der letzten Aktivität. Nebeneffekt: Der Abstand zwischen beiden Werten zeigt an, dass nachgetragen wurde — für einen Coach eine nützliche Information.
+
+**Warum ist die Stimmungs-Skala Pflicht, das Abhaken aber nicht?**
+Ein Check-in ohne erledigte Ziele ist eine ehrliche und wichtige Aussage — die muss möglich sein. Die Skala dagegen ist der einzige Wert, der jede Woche vergleichbar macht; fehlt er, entstehen Lücken im Verlauf, die man später nicht mehr füllen kann.
+
+**Warum eine eigene Seite statt eines Dialogs auf der Roadmap?**
+Bei bis zu acht Lebensbereichen mit je mehreren Wochenzielen wird die Liste lang. Auf dem Telefon — wo der Check-in überwiegend stattfinden wird — ist ein Dialog dafür der falsche Rahmen. Eine eigene Seite ist außerdem verlinkbar, was die späteren Erinnerungs-Mails direkt nutzen können.
+
+### D) Abhängigkeiten
+
+**Keine neuen Pakete.** Alles Nötige ist vorhanden: Supabase-Anbindung, Authentifizierung, das Coach-Verbindungsmodell aus PROJ-6, und die shadcn/ui-Bausteine (`Card`, `Checkbox`, `Slider` oder `RadioGroup` für die Skala, `Switch` für die Freigabe, `Select` für die Wochenauswahl, `Badge`, `Progress`).
+
+**Neu anzulegen:** eine Datenbank-Migration im vorhandenen Ordner `supabase/migrations/`, benannt nach dem etablierten Schema.
+
+### E) Risiken und Grenzen
+
+| Risiko | Einschätzung |
+|---|---|
+| Wochenwiederholung ab Woche 5 wirkt unpassend | Bewusste Übergangslösung, siehe oben. Der Aktualisierungs-Hinweis mildert es. |
+| Zwei Geräte gleichzeitig | Letzter Schreibvorgang gewinnt; die Eindeutigkeitsregel verhindert Duplikate. |
+| Zeitzonen | Die Woche beginnt Montag in der lokalen Zeit des Nutzers; gespeichert wird ein reines Datum ohne Uhrzeit, damit nichts über Zeitgrenzen verrutscht. |
+| Zwei parallele Erledigt-Systeme | Bewusst in Kauf genommen, um keine Migration bestehender Daten zu riskieren. Als eigenes Vorhaben vermerkt. |
+| Coach-Freigabe wird widerrufen | Zugriff endet sofort, weil die Regel bei jeder Abfrage neu greift und nicht zwischengespeichert wird. |
+
+### F) Testbarkeit
+Die Wochenberechnung (welche Woche gilt gerade, was passiert am Jahreswechsel, was ab Woche 5) wird als eigenständige Funktion umgesetzt und ist damit direkt prüfbar — ohne Datenbank, ohne Browser. Die Zugriffsregeln brauchen einen Test, der bestätigt, dass ein Coach ohne Freigabe **auch bei direktem Zugriff** nichts sieht; die Oberfläche allein ist kein Nachweis. Dazu ein Durchlauf im Browser über den vollständigen Ablauf inklusive Nachtragen.
 
 ## QA Test Results
 _To be added by /qa_

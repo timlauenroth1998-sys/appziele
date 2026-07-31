@@ -21,9 +21,9 @@
 | PROJ-5 | Benutzerkonten & optionaler Login | Deployed | [PROJ-5](PROJ-5-benutzerkonten.md) | 2026-04-03 |
 | PROJ-6 | Coach-Klienten-Ansicht | Deployed | [PROJ-6](PROJ-6-coach-klienten-ansicht.md) | 2026-04-03 |
 | PROJ-7 | Coaching Library | Deployed | [PROJ-7](PROJ-7-coaching-library.md) | 2026-04-19 |
-| PROJ-8 | Wöchentlicher Check-in | Planned | [PROJ-8](PROJ-8-wochen-checkin.md) | 2026-07-31 |
-| PROJ-9 | Coach-Dashboard mit Ampel | Planned | [PROJ-9](PROJ-9-coach-dashboard-ampel.md) | 2026-07-31 |
-| PROJ-10 | Onboarding-Entwurf sichern | Planned | [PROJ-10](PROJ-10-onboarding-entwurf-sichern.md) | 2026-07-31 |
+| PROJ-8 | Wöchentlicher Check-in | Architected | [PROJ-8](PROJ-8-wochen-checkin.md) | 2026-07-31 |
+| PROJ-9 | Coach-Dashboard mit Ampel | Architected | [PROJ-9](PROJ-9-coach-dashboard-ampel.md) | 2026-07-31 |
+| PROJ-10 | Onboarding-Entwurf sichern | Architected | [PROJ-10](PROJ-10-onboarding-entwurf-sichern.md) | 2026-07-31 |
 
 <!-- Add features above this line -->
 

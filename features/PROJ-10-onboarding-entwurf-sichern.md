@@ -360,4 +360,34 @@ Alle drei Fehler wurden behoben und mit je einem Regressionstest abgesichert:
 - **Vorbehalt:** Die Suite enthält 18 Fehlschläge außerhalb dieses Features (12 vorbestehend in PROJ-2, 4 in PROJ-5 durch Ratelimiter und Supabase-Abhängigkeit, 2 in PROJ-3 unter WebKit). Diese blockieren PROJ-10 nicht, sollten aber vor einem Deployment der übrigen Features geklärt werden.
 
 ## Deployment
-_To be added by /deploy_
+
+**Stand:** 2026-07-31 — **auf Preview, noch nicht in Produktion**
+
+### Vorabprüfungen
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run build` | ✅ fehlerfrei |
+| QA-Freigabe | ✅ Approved, 0 kritische/hohe Fehler offen |
+| Secrets im Git | ✅ keine `.env`-Datei getrackt |
+| Env-Variablen dokumentiert | ✅ `.env.local.example` deckt sich mit `.env.local` |
+| Datenbank-Migrationen | ✅ keine erforderlich (rein clientseitiges Feature) |
+| Security-Header | ✅ in `next.config.ts` konfiguriert |
+| `npm run lint` | ❌ **defekt** — `next lint` existiert in Next.js 16 nicht mehr; ESLint 9 erwartet zudem `eslint.config.js`, das Projekt hat noch `.eslintrc`. Altlast, unabhängig von diesem Feature. TypeScript wird über den Build vollständig geprüft. |
+| Error-Tracking | ⚠️ kein Sentry eingerichtet |
+
+### Ausgeliefert wird (Branch `fix/onboarding-translate-crash`, 7 Commits)
+Neben PROJ-10 enthält der Branch den eigentlich dringenderen Fix:
+
+- `ed6017d` — **`<html lang="de">`**: behebt den Absturz, der den Onboarding-Wizard bei deutschsprachigen Chrome-Nutzern durch die Auto-Übersetzung zerlegte. Dazu Error Boundaries, abgesicherter Speicherpfad, `clearProfile`-Korrektur und der Tailwind-Farbfix.
+- `0d376b3`, `60dd0a1`, `28b0cc5` — Specs und technische Entwürfe für PROJ-8, PROJ-9, PROJ-10 (nur Dokumentation)
+- `7096216`, `6d1fe05`, `728617f` — PROJ-10 Umsetzung, QA-Ergebnisse, Fehlerbehebungen
+
+### Vorgehen
+Branch wurde nach GitHub gepusht (`origin/fix/onboarding-translate-crash`), **nicht** nach `main`. Produktion ist unberührt. Die Vercel-Preview dient der Gegenprobe durch den Testnutzer vom 08.06.2026, bevor nach `main` gemerged wird.
+
+### Offen vor dem Produktions-Deployment
+- [ ] Preview-URL aus dem Vercel-Dashboard abrufen
+- [ ] **Gegenprobe durch den Testnutzer** — bestätigt, ob der `lang`-Fix seinen Absturz tatsächlich behebt
+- [ ] Merge nach `main` → automatisches Produktions-Deployment
+- [ ] Git-Tag setzen
+- [ ] `features/INDEX.md` auf **Deployed** setzen

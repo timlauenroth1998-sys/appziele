@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
+import { useOnboardingDraft } from '@/hooks/useOnboardingDraft'
 import { StepVisionInput } from '@/components/onboarding/StepVisionInput'
 import { StepLifeAreaSelector } from '@/components/onboarding/StepLifeAreaSelector'
 import { StepGoalInput } from '@/components/onboarding/StepGoalInput'
 import { StepGoalSummary } from '@/components/onboarding/StepGoalSummary'
+import { DraftRestoredNotice } from '@/components/onboarding/DraftRestoredNotice'
+import { ExistingProfileWarning } from '@/components/onboarding/ExistingProfileWarning'
 import { LifeAreaGoal, GoalProfile, LIFE_AREA_DEFAULTS } from '@/lib/types'
 
 const STEPS = [
@@ -29,12 +32,78 @@ function defaultLifeAreas(): LifeAreaGoal[] {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { saveProfile } = useGoalStorage()
+  const { saveProfile, profile, isLoaded: profileLoaded } = useGoalStorage()
+  const {
+    draft,
+    isLoaded: draftLoaded,
+    storageAvailable,
+    saveDraft,
+    clearDraft,
+  } = useOnboardingDraft()
 
   const [step, setStep] = useState(1)
   const [vision5y, setVision5y] = useState('')
   const [lifeAreas, setLifeAreas] = useState<LifeAreaGoal[]>(defaultLifeAreas)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+
+  const [hydrated, setHydrated] = useState(false)
+  const [restored, setRestored] = useState(false)
+  const [profileWarningDismissed, setProfileWarningDismissed] = useState(false)
+
+  // Ausgangszustand nach der Uebernahme. Solange sich nichts davon unterscheidet,
+  // hat der Nutzer nichts eingegeben — dann darf auch kein Entwurf entstehen.
+  const baseline = useRef<string | null>(null)
+  const dirty = useRef(false)
+
+  const snapshot = (s: number, v: string, a: LifeAreaGoal[]) =>
+    JSON.stringify({ step: s, vision5y: v, lifeAreas: a })
+
+  // Entwurf einmalig uebernehmen, bevor gespeichert wird — sonst ueberschriebe
+  // der leere Anfangszustand den gesicherten Stand.
+  useEffect(() => {
+    if (!draftLoaded || hydrated) return
+    if (draft) {
+      setVision5y(draft.vision5y)
+      setLifeAreas(draft.lifeAreas)
+      setStep(draft.step)
+      setRestored(true)
+      baseline.current = snapshot(draft.step, draft.vision5y, draft.lifeAreas)
+    } else {
+      baseline.current = snapshot(step, vision5y, lifeAreas)
+    }
+    setHydrated(true)
+    // step/vision5y/lifeAreas sind hier bewusst die Anfangswerte und keine Abhaengigkeit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftLoaded, draft, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    // Erst schreiben, wenn sich tatsaechlich etwas geaendert hat. Sonst entstuende
+    // schon beim blossen Seitenaufruf ein leerer Entwurf, und der Hinweis
+    // "Stand gesichert" erschiene jedem Wiederkehrer ohne jede Eingabe.
+    if (!dirty.current) {
+      if (snapshot(step, vision5y, lifeAreas) === baseline.current) return
+      dirty.current = true
+    }
+    saveDraft({ step, vision5y, lifeAreas })
+  }, [hydrated, step, vision5y, lifeAreas, saveDraft])
+
+  const startOver = () => {
+    clearDraft()
+    const freshAreas = defaultLifeAreas()
+    setVision5y('')
+    setLifeAreas(freshAreas)
+    setStep(1)
+    setErrors({})
+    setSaveError('')
+    setRestored(false)
+    // Nach dem Verwerfen wieder als unberuehrt behandeln, sonst legt der Effekt
+    // sofort einen neuen leeren Entwurf an.
+    baseline.current = snapshot(1, '', freshAreas)
+    dirty.current = false
+  }
 
   const validate = (): boolean => {
     if (step === 2) {
@@ -69,16 +138,39 @@ export default function OnboardingPage() {
     setStep((s) => Math.max(s - 1, 1))
   }
 
-  const finish = () => {
-    const profile: GoalProfile = {
+  const finish = async () => {
+    if (saving) return
+    setSaving(true)
+    setSaveError('')
+
+    const newProfile: GoalProfile = {
       vision5y,
       lifeAreas,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
-    saveProfile(profile)
-    router.push('/goals')
+
+    try {
+      await saveProfile(newProfile)
+      // Erst nach nachgewiesenem Speichern verwerfen — schlaegt es fehl, bleibt
+      // der Entwurf liegen und der Nutzer findet beim naechsten Mal alles vor.
+      clearDraft()
+      router.push('/goals')
+    } catch {
+      // Never navigate away on a failed save — the user would lose everything.
+      setSaveError('Deine Ziele konnten nicht gespeichert werden. Bitte versuche es noch einmal.')
+      setSaving(false)
+    }
   }
+
+  // Erst zeichnen, wenn Entwurf und Profil geladen sind — sonst blitzt kurz der
+  // leere Schritt 1 auf, bevor der gesicherte Stand einspringt.
+  if (!draftLoaded || !profileLoaded) return null
+
+  // Bewusst unabhaengig davon, ob ein Entwurf wiederhergestellt wurde: Gerade der
+  // unterbrochene und spaeter fortgesetzte Durchlauf ist der Fall, in dem sonst
+  // bestehende Ziele ohne jede Warnung ersetzt wuerden.
+  const showProfileWarning = !!profile && !profileWarningDismissed
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -103,6 +195,25 @@ export default function OnboardingPage() {
           style={{ width: `${(step / STEPS.length) * 100}%` }}
         />
       </div>
+
+      {/* Notices */}
+      {(showProfileWarning || restored || !storageAvailable) && (
+        <div className="max-w-2xl mx-auto w-full px-6 pt-6">
+          {showProfileWarning && (
+            <ExistingProfileWarning onDismiss={() => setProfileWarningDismissed(true)} />
+          )}
+          {restored && draft && (
+            <DraftRestoredNotice updatedAt={draft.updatedAt} onDiscard={startOver} />
+          )}
+          {!storageAvailable && (
+            <p className="text-xs text-gray-400 mb-6">
+              Hinweis: Dein Fortschritt kann in diesem Browser nicht gesichert werden.
+              Das Onboarding funktioniert trotzdem – schließe das Fenster nur nicht
+              zwischendurch.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="max-w-2xl mx-auto w-full px-6 pt-8 pb-2">
@@ -140,6 +251,9 @@ export default function OnboardingPage() {
         {errors.lifeAreas && (
           <p className="text-sm text-red-500 mt-3">{errors.lifeAreas}</p>
         )}
+        {saveError && (
+          <p className="text-sm text-red-500 mt-3" role="alert">{saveError}</p>
+        )}
       </main>
 
       {/* Navigation */}
@@ -152,8 +266,8 @@ export default function OnboardingPage() {
             {step === 1 && vision5y === '' ? 'Überspringen' : 'Weiter'} →
           </Button>
         ) : (
-          <Button onClick={finish} className="px-6">
-            Ziele speichern & weiter →
+          <Button onClick={finish} disabled={saving} className="px-6">
+            {saving ? 'Wird gespeichert …' : 'Ziele speichern & weiter →'}
           </Button>
         )}
       </div>

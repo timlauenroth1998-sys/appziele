@@ -124,6 +124,56 @@ test('AC: Warnung erscheint, wenn bereits ein Zielprofil existiert', async ({ pa
   await expect(warning).toHaveCount(0)
 })
 
+test('BUG-1: Reiner Seitenaufruf ohne Eingabe erzeugt keinen Entwurf', async ({ page }) => {
+  await page.goto('/onboarding')
+  await page.waitForTimeout(1200) // deutlich ueber der Speicherverzoegerung
+  expect(await page.evaluate((k) => localStorage.getItem(k), DRAFT_KEY)).toBeNull()
+
+  await page.reload()
+  await expect(page.getByText('Wir haben deinen Stand gesichert')).toHaveCount(0)
+})
+
+test('BUG-2: "Neu beginnen" legt keinen neuen leeren Entwurf an', async ({ page }) => {
+  await page.goto('/onboarding')
+  await page.locator('textarea').first().fill('Wird gleich verworfen')
+  await page.waitForTimeout(800)
+  await page.reload()
+
+  await page.getByRole('button', { name: 'Neu beginnen' }).click()
+  await page.getByRole('button', { name: 'Verwerfen' }).click()
+  await page.waitForTimeout(1200)
+
+  expect(await page.evaluate((k) => localStorage.getItem(k), DRAFT_KEY)).toBeNull()
+  await page.reload()
+  await expect(page.getByText('Wir haben deinen Stand gesichert')).toHaveCount(0)
+})
+
+test('BUG-3: Überschreib-Warnung bleibt auch nach einem Reload sichtbar', async ({ page }) => {
+  await page.goto('/onboarding')
+  await page.evaluate((k) => {
+    localStorage.setItem(k, JSON.stringify({
+      vision5y: 'Bestehende Vision',
+      lifeAreas: [{
+        id: 'career', name: 'Karriere & Beruf', isCustom: false, color: 'blue',
+        yearGoal: 'Bestehendes Ziel', quarterGoal: '', monthGoal: '', weekGoal: '',
+      }],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }))
+  }, PROFILE_KEY)
+
+  await page.goto('/onboarding')
+  await expect(page.getByText('Du hast bereits Ziele definiert')).toBeVisible()
+
+  await page.locator('textarea').first().fill('Neuer Durchlauf')
+  await page.waitForTimeout(800)
+  await page.reload()
+
+  // Der unterbrochene und fortgesetzte Durchlauf ist genau der riskante Fall
+  await expect(page.getByText('Wir haben deinen Stand gesichert')).toBeVisible()
+  await expect(page.getByText('Du hast bereits Ziele definiert')).toBeVisible()
+})
+
 test('AC: Entwurf wird nach erfolgreichem Abschluss gelöscht', async ({ page }) => {
   await page.goto('/onboarding')
   await page.getByRole('button', { name: /Überspringen|Weiter/ }).click()

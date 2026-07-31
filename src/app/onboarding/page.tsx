@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
@@ -52,6 +52,14 @@ export default function OnboardingPage() {
   const [restored, setRestored] = useState(false)
   const [profileWarningDismissed, setProfileWarningDismissed] = useState(false)
 
+  // Ausgangszustand nach der Uebernahme. Solange sich nichts davon unterscheidet,
+  // hat der Nutzer nichts eingegeben — dann darf auch kein Entwurf entstehen.
+  const baseline = useRef<string | null>(null)
+  const dirty = useRef(false)
+
+  const snapshot = (s: number, v: string, a: LifeAreaGoal[]) =>
+    JSON.stringify({ step: s, vision5y: v, lifeAreas: a })
+
   // Entwurf einmalig uebernehmen, bevor gespeichert wird — sonst ueberschriebe
   // der leere Anfangszustand den gesicherten Stand.
   useEffect(() => {
@@ -61,23 +69,40 @@ export default function OnboardingPage() {
       setLifeAreas(draft.lifeAreas)
       setStep(draft.step)
       setRestored(true)
+      baseline.current = snapshot(draft.step, draft.vision5y, draft.lifeAreas)
+    } else {
+      baseline.current = snapshot(step, vision5y, lifeAreas)
     }
     setHydrated(true)
+    // step/vision5y/lifeAreas sind hier bewusst die Anfangswerte und keine Abhaengigkeit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftLoaded, draft, hydrated])
 
   useEffect(() => {
     if (!hydrated) return
+    // Erst schreiben, wenn sich tatsaechlich etwas geaendert hat. Sonst entstuende
+    // schon beim blossen Seitenaufruf ein leerer Entwurf, und der Hinweis
+    // "Stand gesichert" erschiene jedem Wiederkehrer ohne jede Eingabe.
+    if (!dirty.current) {
+      if (snapshot(step, vision5y, lifeAreas) === baseline.current) return
+      dirty.current = true
+    }
     saveDraft({ step, vision5y, lifeAreas })
   }, [hydrated, step, vision5y, lifeAreas, saveDraft])
 
   const startOver = () => {
     clearDraft()
+    const freshAreas = defaultLifeAreas()
     setVision5y('')
-    setLifeAreas(defaultLifeAreas())
+    setLifeAreas(freshAreas)
     setStep(1)
     setErrors({})
     setSaveError('')
     setRestored(false)
+    // Nach dem Verwerfen wieder als unberuehrt behandeln, sonst legt der Effekt
+    // sofort einen neuen leeren Entwurf an.
+    baseline.current = snapshot(1, '', freshAreas)
+    dirty.current = false
   }
 
   const validate = (): boolean => {
@@ -142,7 +167,10 @@ export default function OnboardingPage() {
   // leere Schritt 1 auf, bevor der gesicherte Stand einspringt.
   if (!draftLoaded || !profileLoaded) return null
 
-  const showProfileWarning = !!profile && !profileWarningDismissed && !restored
+  // Bewusst unabhaengig davon, ob ein Entwurf wiederhergestellt wurde: Gerade der
+  // unterbrochene und spaeter fortgesetzte Durchlauf ist der Fall, in dem sonst
+  // bestehende Ziele ohne jede Warnung ersetzt wuerden.
+  const showProfileWarning = !!profile && !profileWarningDismissed
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

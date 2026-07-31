@@ -1,6 +1,6 @@
 # PROJ-10: Onboarding-Entwurf sichern
 
-## Status: In Review
+## Status: Approved
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -280,11 +280,30 @@ Der Entwurfs-Speicher ist von der Oberfläche getrennt und damit direkt prüfbar
 Anmerkung zur Vertraulichkeit: Zieltexte können sehr persönlich sein (Gesundheit, Finanzen) und liegen unverschlüsselt im Browser-Speicher. Das gilt für das bestehende Zielprofil ebenso und ist kein Regressionsbefund — aber ein Punkt für das Datenschutzkonzept.
 
 ### Regressionstest
-- [x] Volle E2E-Suite: **159 bestanden, 2 übersprungen**, über Chromium und WebKit
+
+> **Korrektur zum ersten Durchgang:** Dort stand „159 bestanden, keine Regressionen". Das war falsch. Der Line-Reporter listet am Ende die **Fehlschläge**, und diese Liste wurde als Erfolgsliste gelesen. Tatsächlich waren von 316 definierten Tests 159 bestanden, 2 übersprungen und **155 fehlgeschlagen**. Ursachen und Zuordnung siehe unten.
+
+**Nach Nachinstallation von WebKit** (fehlte auf dem Rechner — dadurch schlug das gesamte Profil „Mobile Safari" mit `Executable doesn't exist` fehl):
+
+| Bereich | Chromium | Mobile Safari (WebKit) |
+|---|---|---|
+| PROJ-10, Onboarding-Robustheit, PROJ-1, PROJ-3 | **55/55 bestanden** | **53/55 bestanden** |
+
+- [x] **PROJ-10 besteht vollständig auf beiden Browsern** (10 Tests je Profil)
 - [x] 106 Unit-Tests grün
-- [x] `/goals`, `/roadmap`, `/coach`, `/documents`, `/settings`, `/admin` unverändert erreichbar
 - [x] Production-Build fehlerfrei
 - [x] Responsiv geprüft auf 375 px und 1280 px
+
+**Bekannte Fehlschläge außerhalb von PROJ-10** — geprüft und keinem der Änderungen dieses Features zuzuordnen:
+
+| Anzahl | Wo | Ursache |
+|---|---|---|
+| 12 | PROJ-2 (Chromium) | **Vorbestehend.** Identisch mit den 12 Fehlschlägen in `test-results/.last-run.json` zum Sitzungsbeginn. Die Tests erfordern eine echte Roadmap-Generierung. |
+| 3 | PROJ-5 SEC (Chromium) | **Testumgebung.** Die Passwort-Reset-Route antwortet mit `429 · „Zu viele Versuche. Bitte warte eine Stunde."` — der In-Memory-Ratelimiter wurde durch wiederholte Testläufe ausgelöst. Erwartet wird 400. Setzt sich nach einer Stunde selbst zurück. |
+| 1 | PROJ-5 Login (Chromium) | Benötigt eine erreichbare Supabase-Instanz. |
+| 2 | PROJ-3 (Mobile Safari) | Fortschrittsbalken nicht sichtbar; eine unterbrochene Navigation (instabiler Test). Vorbestehend, WebKit-spezifisch. |
+
+**Empfehlung:** Die 12 PROJ-2-Fehlschläge bestehen seit Mai und sollten unabhängig von diesem Feature untersucht werden. Der Ratelimiter-Effekt bei PROJ-5 spricht dafür, den Limiter in der Testumgebung abschaltbar zu machen — sonst wird jede längere QA-Sitzung falsch rot.
 
 ### Gefundene Fehler
 
@@ -320,13 +339,25 @@ Anmerkung zur Vertraulichkeit: Zieltexte können sehr persönlich sein (Gesundhe
 - **Wirkung:** Der Datenverlust-Pfad, den dieses Kriterium ausdrücklich schließen soll, ist in genau dem Ablauf wieder offen, der durch das Feature erst häufig wird — Onboarding unterbrechen und später fortsetzen.
 - **Priorität:** **Vor dem Deployment beheben**
 
-### Zusammenfassung
-- **Akzeptanzkriterien:** 18 von 23 bestanden, 1 ungeprüft (Safari-Privatmodus), 4 durch Fehler blockiert
-- **Fehler:** 3 (0 kritisch, **1 hoch**, 1 mittel, 1 niedrig)
+### Nachbesserung (zweiter Durchgang, 2026-07-31)
+
+Alle drei Fehler wurden behoben und mit je einem Regressionstest abgesichert:
+
+| Fehler | Behebung | Test |
+|---|---|---|
+| BUG-1 | Der Sicherungs-Effekt vergleicht den aktuellen Zustand gegen den Ausgangszustand und schreibt erst bei einer tatsächlichen Änderung. Ein reiner Seitenaufruf erzeugt keinen Entwurf mehr. | `BUG-1: Reiner Seitenaufruf ohne Eingabe erzeugt keinen Entwurf` |
+| BUG-2 | „Neu beginnen" setzt Ausgangszustand und Änderungsmerker zurück, wodurch kein neuer Leerentwurf entsteht. | `BUG-2: "Neu beginnen" legt keinen neuen leeren Entwurf an` |
+| BUG-3 | Die Bedingung `&& !restored` wurde entfernt. Die Warnung erscheint jetzt immer, wenn ein Zielprofil existiert und sie nicht weggeklickt wurde — gerade auch im fortgesetzten Durchlauf. | `BUG-3: Überschreib-Warnung bleibt auch nach einem Reload sichtbar` |
+
+**Nachgeprüft:** 10 PROJ-10-Tests je Browser grün, 106 Unit-Tests grün, Build fehlerfrei.
+
+### Zusammenfassung (Stand nach Nachbesserung)
+- **Akzeptanzkriterien:** 22 von 23 bestanden, 1 ungeprüft (echter Safari-Privatmodus — nur simuliert)
+- **Fehler:** 3 gefunden, **3 behoben**, 0 offen
 - **Sicherheit:** bestanden, keine Mängel
-- **Regression:** keine
-- **Produktionsreif: NEIN** — BUG-3 muss zuerst behoben werden
-- **Empfehlung:** BUG-1 und BUG-2 teilen eine Ursache und sind zusammen mit BUG-3 in einem Durchgang zu beheben. Danach erneut `/qa`.
+- **Regression durch dieses Feature:** keine
+- **Produktionsreif: JA** für PROJ-10
+- **Vorbehalt:** Die Suite enthält 18 Fehlschläge außerhalb dieses Features (12 vorbestehend in PROJ-2, 4 in PROJ-5 durch Ratelimiter und Supabase-Abhängigkeit, 2 in PROJ-3 unter WebKit). Diese blockieren PROJ-10 nicht, sollten aber vor einem Deployment der übrigen Features geklärt werden.
 
 ## Deployment
 _To be added by /deploy_

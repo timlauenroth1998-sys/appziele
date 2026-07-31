@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useGoalStorage } from '@/hooks/useGoalStorage'
+import { useOnboardingDraft } from '@/hooks/useOnboardingDraft'
 import { StepVisionInput } from '@/components/onboarding/StepVisionInput'
 import { StepLifeAreaSelector } from '@/components/onboarding/StepLifeAreaSelector'
 import { StepGoalInput } from '@/components/onboarding/StepGoalInput'
 import { StepGoalSummary } from '@/components/onboarding/StepGoalSummary'
+import { DraftRestoredNotice } from '@/components/onboarding/DraftRestoredNotice'
+import { ExistingProfileWarning } from '@/components/onboarding/ExistingProfileWarning'
 import { LifeAreaGoal, GoalProfile, LIFE_AREA_DEFAULTS } from '@/lib/types'
 
 const STEPS = [
@@ -29,7 +32,14 @@ function defaultLifeAreas(): LifeAreaGoal[] {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { saveProfile } = useGoalStorage()
+  const { saveProfile, profile, isLoaded: profileLoaded } = useGoalStorage()
+  const {
+    draft,
+    isLoaded: draftLoaded,
+    storageAvailable,
+    saveDraft,
+    clearDraft,
+  } = useOnboardingDraft()
 
   const [step, setStep] = useState(1)
   const [vision5y, setVision5y] = useState('')
@@ -37,6 +47,38 @@ export default function OnboardingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+
+  const [hydrated, setHydrated] = useState(false)
+  const [restored, setRestored] = useState(false)
+  const [profileWarningDismissed, setProfileWarningDismissed] = useState(false)
+
+  // Entwurf einmalig uebernehmen, bevor gespeichert wird — sonst ueberschriebe
+  // der leere Anfangszustand den gesicherten Stand.
+  useEffect(() => {
+    if (!draftLoaded || hydrated) return
+    if (draft) {
+      setVision5y(draft.vision5y)
+      setLifeAreas(draft.lifeAreas)
+      setStep(draft.step)
+      setRestored(true)
+    }
+    setHydrated(true)
+  }, [draftLoaded, draft, hydrated])
+
+  useEffect(() => {
+    if (!hydrated) return
+    saveDraft({ step, vision5y, lifeAreas })
+  }, [hydrated, step, vision5y, lifeAreas, saveDraft])
+
+  const startOver = () => {
+    clearDraft()
+    setVision5y('')
+    setLifeAreas(defaultLifeAreas())
+    setStep(1)
+    setErrors({})
+    setSaveError('')
+    setRestored(false)
+  }
 
   const validate = (): boolean => {
     if (step === 2) {
@@ -76,7 +118,7 @@ export default function OnboardingPage() {
     setSaving(true)
     setSaveError('')
 
-    const profile: GoalProfile = {
+    const newProfile: GoalProfile = {
       vision5y,
       lifeAreas,
       createdAt: new Date().toISOString(),
@@ -84,7 +126,10 @@ export default function OnboardingPage() {
     }
 
     try {
-      await saveProfile(profile)
+      await saveProfile(newProfile)
+      // Erst nach nachgewiesenem Speichern verwerfen — schlaegt es fehl, bleibt
+      // der Entwurf liegen und der Nutzer findet beim naechsten Mal alles vor.
+      clearDraft()
       router.push('/goals')
     } catch {
       // Never navigate away on a failed save — the user would lose everything.
@@ -92,6 +137,12 @@ export default function OnboardingPage() {
       setSaving(false)
     }
   }
+
+  // Erst zeichnen, wenn Entwurf und Profil geladen sind — sonst blitzt kurz der
+  // leere Schritt 1 auf, bevor der gesicherte Stand einspringt.
+  if (!draftLoaded || !profileLoaded) return null
+
+  const showProfileWarning = !!profile && !profileWarningDismissed && !restored
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -116,6 +167,25 @@ export default function OnboardingPage() {
           style={{ width: `${(step / STEPS.length) * 100}%` }}
         />
       </div>
+
+      {/* Notices */}
+      {(showProfileWarning || restored || !storageAvailable) && (
+        <div className="max-w-2xl mx-auto w-full px-6 pt-6">
+          {showProfileWarning && (
+            <ExistingProfileWarning onDismiss={() => setProfileWarningDismissed(true)} />
+          )}
+          {restored && draft && (
+            <DraftRestoredNotice updatedAt={draft.updatedAt} onDiscard={startOver} />
+          )}
+          {!storageAvailable && (
+            <p className="text-xs text-gray-400 mb-6">
+              Hinweis: Dein Fortschritt kann in diesem Browser nicht gesichert werden.
+              Das Onboarding funktioniert trotzdem – schließe das Fenster nur nicht
+              zwischendurch.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="max-w-2xl mx-auto w-full px-6 pt-8 pb-2">

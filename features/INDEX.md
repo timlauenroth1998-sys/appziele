@@ -23,7 +23,7 @@
 | PROJ-7 | Coaching Library | Deployed | [PROJ-7](PROJ-7-coaching-library.md) | 2026-04-19 |
 | PROJ-8 | Wöchentlicher Check-in | Architected | [PROJ-8](PROJ-8-wochen-checkin.md) | 2026-07-31 |
 | PROJ-9 | Coach-Dashboard mit Ampel | Architected | [PROJ-9](PROJ-9-coach-dashboard-ampel.md) | 2026-07-31 |
-| PROJ-10 | Onboarding-Entwurf sichern | Architected | [PROJ-10](PROJ-10-onboarding-entwurf-sichern.md) | 2026-07-31 |
+| PROJ-10 | Onboarding-Entwurf sichern | In Progress | [PROJ-10](PROJ-10-onboarding-entwurf-sichern.md) | 2026-07-31 |
 
 <!-- Add features above this line -->
 

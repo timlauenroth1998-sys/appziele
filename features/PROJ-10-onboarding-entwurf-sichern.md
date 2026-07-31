@@ -1,6 +1,6 @@
 # PROJ-10: Onboarding-Entwurf sichern
 
-## Status: Architected
+## Status: In Progress
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -185,6 +185,37 @@ Verwendet werden ausschließlich bereits vorhandene shadcn/ui-Bausteine: `Alert`
 
 ### F) Testbarkeit
 Der Entwurfs-Speicher ist von der Oberfläche getrennt und damit direkt prüfbar: Schreiben, Lesen, abgelaufener Entwurf, beschädigter Entwurf, gesperrter Speicher. Ergänzend ein Durchlauf im echten Browser, der mitten im Wizard neu lädt und prüft, dass Eingaben **und** Schrittnummer zurückkommen. Das Projekt hat für beide Ebenen bereits die passende Struktur.
+
+## Implementierungsnotizen (Frontend)
+**Umgesetzt:** 2026-07-31
+
+### Was gebaut wurde
+| Datei | Rolle |
+|---|---|
+| `src/hooks/useOnboardingDraft.ts` | NEU — Entwurfsspeicher: Laden mit Strukturprüfung, verzögertes Schreiben, Verwerfen, Erkennung fehlenden Speichers |
+| `src/hooks/useOnboardingDraft.test.ts` | NEU — 9 Unit-Tests |
+| `src/components/onboarding/DraftRestoredNotice.tsx` | NEU — Hinweisleiste mit Zeitangabe und „Neu beginnen" samt Rückfrage |
+| `src/components/onboarding/ExistingProfileWarning.tsx` | NEU — Warnung vor dem Überschreiben bestehender Ziele |
+| `src/app/onboarding/page.tsx` | Geändert — Übernahme, Sicherung, Verwerfen, Hinweisanzeige |
+| `tests/PROJ-10-onboarding-entwurf.spec.ts` | NEU — 7 E2E-Tests entlang der Akzeptanzkriterien |
+
+**Keine neuen Pakete.** Nur vorhandene shadcn-Bausteine (`Button`, `AlertDialog`).
+**Die vier Schritt-Komponenten wurden nicht angefasst**, wie im Entwurf vorgesehen.
+
+### Abweichungen vom Entwurf
+- **Kein `Alert`-Baustein für die Hinweise.** Der shadcn-`Alert` bringt eine eigene Rahmen- und Abstandslogik mit, die neben der bestehenden `rounded-xl`-Sprache der Seite fremd wirkte. Beide Hinweise sind stattdessen schlichte Container im Stil der übrigen Seite. `AlertDialog` wird wie geplant für die Rückfrage genutzt.
+- **Reihenfolge der Hinweise:** Die Profilwarnung steht über der Entwurfsmeldung, und beide erscheinen nie gleichzeitig — wer einen Entwurf fortsetzt, hat sich bereits fürs Weitermachen entschieden; die Warnung wäre dort nur Lärm.
+
+### Offene Punkte für QA
+- **Die Sicherung greift auch beim Verlassen der Seite.** Ein ausstehender Schreibvorgang wird beim Aushängen der Komponente nachgeholt, damit die letzten 500 ms nicht verlorengehen. Schwer automatisiert zu prüfen — händisch bestätigen.
+- **Der Ausfallpfad ist nur im Unit-Test abgedeckt** (Schreibfehler wird simuliert). Im echten Safari-Privatmodus noch nicht verifiziert.
+- **Zwei Personen an einem Browser** ist wie in der Spec beschrieben nicht gelöst, sondern bewusst akzeptiert.
+
+### Prüfstand
+- 106 Unit-Tests grün (9 neu)
+- 11 E2E-Tests grün (7 neu für PROJ-10, 4 Regression aus dem Fix vom 31.07.)
+- Production-Build fehlerfrei
+- Sichtprüfung Desktop (1280 px) und Mobil (375 px)
 
 ## QA Test Results
 _To be added by /qa_

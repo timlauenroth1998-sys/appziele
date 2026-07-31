@@ -1,6 +1,6 @@
 # PROJ-10: Onboarding-Entwurf sichern
 
-## Status: Approved
+## Status: Deployed
 **Created:** 2026-07-31
 **Last Updated:** 2026-07-31
 
@@ -361,7 +361,8 @@ Alle drei Fehler wurden behoben und mit je einem Regressionstest abgesichert:
 
 ## Deployment
 
-**Stand:** 2026-07-31 — **auf Preview, noch nicht in Produktion**
+**Stand:** 2026-07-31 — **live in Produktion**
+**URL:** https://appziele.vercel.app
 
 ### Vorabprüfungen
 | Prüfung | Ergebnis |
@@ -385,9 +386,16 @@ Neben PROJ-10 enthält der Branch den eigentlich dringenderen Fix:
 ### Vorgehen
 Branch wurde nach GitHub gepusht (`origin/fix/onboarding-translate-crash`), **nicht** nach `main`. Produktion ist unberührt. Die Vercel-Preview dient der Gegenprobe durch den Testnutzer vom 08.06.2026, bevor nach `main` gemerged wird.
 
-### Offen vor dem Produktions-Deployment
-- [ ] Preview-URL aus dem Vercel-Dashboard abrufen
-- [ ] **Gegenprobe durch den Testnutzer** — bestätigt, ob der `lang`-Fix seinen Absturz tatsächlich behebt
-- [ ] Merge nach `main` → automatisches Produktions-Deployment
-- [ ] Git-Tag setzen
-- [ ] `features/INDEX.md` auf **Deployed** setzen
+### Ausgeführt
+- [x] PR #1 nach `main` gemerged
+- [x] Vercel hat automatisch deployt (Dauer ca. 5:45 min — deutlich länger als die üblichen 1–3 min; ein zwischenzeitlicher Befund „Auto-Deploy nicht aktiv" war voreilig)
+- [x] Produktion verifiziert: `<html lang="de">` wird ausgeliefert, `/`, `/onboarding`, `/goals`, `/auth` antworten mit 200
+- [x] Produktions-Rauchtest: 4 Prüfungen je Browser (Chromium und Mobile Safari), **8/8 bestanden** — Entwurf wird gesichert und wiederhergestellt, ein reiner Aufruf erzeugt keinen Entwurf, Lebensbereichs-Farben werden gerendert
+- [x] Git-Tag `v1.1.0-PROJ-10` gesetzt
+- [x] `features/INDEX.md` auf **Deployed**
+
+### Weiterhin offen
+- [ ] **Gegenprobe durch den Testnutzer vom 08.06.2026** — die Ursachenkette ist gut belegt, aber erst sein erneuter Durchlauf im selben Browser mit derselben Spracheinstellung bestätigt sie
+- [ ] Echter Safari-Privatmodus (Ausfallpfad nur simuliert)
+- [ ] Error-Tracking (kein Sentry) — dieser Fehler lag zwei Monate unentdeckt in der Produktion
+- [ ] `npm run lint` reparieren (`next lint` in Next.js 16 entfernt, ESLint 9 erwartet `eslint.config.js`)

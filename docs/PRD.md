@@ -33,6 +33,7 @@ Eine web-basierte Coaching-App, die Coaches und ihre Klienten dabei unterstützt
 | P1 | Coaching Library (PDF-Upload, KI-Suche, Teilen) | Planned |
 | P1 | Wöchentlicher Check-in | Planned |
 | P1 | Coach-Dashboard mit Ampel | Planned |
+| P0 (MVP) | Onboarding-Entwurf sichern | Planned |
 
 ## Success Metrics
 - Nutzer erstellen ihren ersten vollständigen Fahrplan in < 5 Minuten

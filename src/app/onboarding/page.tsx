@@ -35,6 +35,8 @@ export default function OnboardingPage() {
   const [vision5y, setVision5y] = useState('')
   const [lifeAreas, setLifeAreas] = useState<LifeAreaGoal[]>(defaultLifeAreas)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const validate = (): boolean => {
     if (step === 2) {
@@ -69,15 +71,26 @@ export default function OnboardingPage() {
     setStep((s) => Math.max(s - 1, 1))
   }
 
-  const finish = () => {
+  const finish = async () => {
+    if (saving) return
+    setSaving(true)
+    setSaveError('')
+
     const profile: GoalProfile = {
       vision5y,
       lifeAreas,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
-    saveProfile(profile)
-    router.push('/goals')
+
+    try {
+      await saveProfile(profile)
+      router.push('/goals')
+    } catch {
+      // Never navigate away on a failed save — the user would lose everything.
+      setSaveError('Deine Ziele konnten nicht gespeichert werden. Bitte versuche es noch einmal.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -140,6 +153,9 @@ export default function OnboardingPage() {
         {errors.lifeAreas && (
           <p className="text-sm text-red-500 mt-3">{errors.lifeAreas}</p>
         )}
+        {saveError && (
+          <p className="text-sm text-red-500 mt-3" role="alert">{saveError}</p>
+        )}
       </main>
 
       {/* Navigation */}
@@ -152,8 +168,8 @@ export default function OnboardingPage() {
             {step === 1 && vision5y === '' ? 'Überspringen' : 'Weiter'} →
           </Button>
         ) : (
-          <Button onClick={finish} className="px-6">
-            Ziele speichern & weiter →
+          <Button onClick={finish} disabled={saving} className="px-6">
+            {saving ? 'Wird gespeichert …' : 'Ziele speichern & weiter →'}
           </Button>
         )}
       </div>

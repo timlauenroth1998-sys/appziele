@@ -70,24 +70,33 @@ export function useGoalStorage() {
     // Always save to localStorage as offline backup
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { /* ignore */ }
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      await supabase.from('goal_profiles').upsert(
-        { user_id: session.user.id, data: updated, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id' }
-      )
-    }
+    // Sync to Supabase is best-effort — the local backup above is what guarantees
+    // the user never loses input, so a failure here must not reject the promise.
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        await supabase.from('goal_profiles').upsert(
+          { user_id: session.user.id, data: updated, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
+        )
+      }
+    } catch { /* Supabase unreachable — local backup stands */ }
+
     setProfile(updated)
   }, [])
 
   const clearProfile = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
+    // Always drop the local copy: load() falls back to localStorage when Supabase
+    // is empty, so leaving it behind would resurrect the deleted profile.
+    try { localStorage.removeItem(STORAGE_KEY) } catch { /* ignore */ }
 
-    if (session?.user) {
-      await supabase.from('goal_profiles').delete().eq('user_id', session.user.id)
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        await supabase.from('goal_profiles').delete().eq('user_id', session.user.id)
+      }
+    } catch { /* Supabase unreachable */ }
+
     setProfile(null)
   }, [])
 

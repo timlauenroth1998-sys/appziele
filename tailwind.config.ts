@@ -6,6 +6,9 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    // LIFE_AREA_COLOR_MAP lives here — without this path the rose/purple/teal/orange
+    // classes are never generated and those life areas render uncoloured.
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
   	extend: {
